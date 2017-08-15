@@ -8859,7 +8859,8 @@ blockquote p {
   font-style: normal; }
 
 body {
-  background: #fff;
+  background: url("../images/topo-pattern-white.png") repeat 20px 0, linear-gradient(185deg, #F0F1F6 0%, #e9ecf2 100%);
+  background-size: 376px auto, auto auto;
   font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
   color: #2D3047;
   font-size: 16px;
@@ -8872,8 +8873,13 @@ h1, h2, h3 {
 
 #main {
   padding-top: 1.5rem;
-  min-height: 70vh;
+  min-height: 90vh;
   transition: all 0.25s ease-in-out; }
+  #main.ng-animate {
+    min-height: 100vh; }
+  #main.ng-enter {
+    animation: slideInLeft 0.125s all ease-in-out;
+    z-index: 8888; }
   #main.ng-leave {
     animation: fadeOut 0.075s all linear;
     z-index: 999;
@@ -8901,6 +8907,18 @@ h1, h2, h3 {
   transition: all 0.3s ease-in-out; }
   #primary:hover {
     background-position: -6px 0; }
+  #primary a.logo {
+    background-color: #2541B2;
+    position: relative;
+    display: block;
+    height: 58px; }
+    #primary a.logo img {
+      max-width: 32px;
+      position: absolute;
+      top: 12px;
+      left: 11px; }
+    #primary a.logo:hover {
+      background-color: #3555d5; }
   #primary .icon {
     color: white;
     position: absolute;
@@ -8921,18 +8939,6 @@ h1, h2, h3 {
       bottom: 60px; }
     #primary .icon.ion-help {
       bottom: 19px; }
-  #primary a.logo {
-    background-color: #2541B2;
-    position: relative;
-    display: block;
-    height: 56px; }
-    #primary a.logo img {
-      max-width: 32px;
-      position: absolute;
-      top: 11px;
-      left: 11px; }
-    #primary a.logo:hover {
-      background-color: #3555d5; }
 
 #sidebar {
   background-color: #F4F5F7;
@@ -8951,11 +8957,19 @@ h1, h2, h3 {
       position: relative;
       min-width: 4em;
       text-align: left;
-      height: 57px;
+      height: 59px;
       width: 78%;
       margin: 0;
-      padding: 0;
-      border-bottom: 2px solid #eaecf0; }
+      padding: 0; }
+      #sidebar .menu-group #organization:after,
+      #sidebar .menu-bar #organization:after {
+        position: absolute;
+        bottom: 0;
+        width: 84%;
+        margin: 0 8%;
+        display: block;
+        content: " ";
+        border-bottom: 2px solid #eef0f3; }
       #sidebar .menu-group #organization a,
       #sidebar .menu-bar #organization a {
         display: block;
@@ -9039,8 +9053,11 @@ h1, h2, h3 {
         position: absolute; }
 
 #header {
-  background-color: rgba(255, 255, 255, 0.5);
-  border-bottom: 2px solid white; }
+  background-color: rgba(255, 255, 255, 0.05);
+  border-bottom: 2px solid #f1f2f5;
+  transition: all 0.3s ease-in-out; }
+  #header:hover {
+    background-color: rgba(255, 255, 255, 0.85); }
   #header .menu-group,
   #header .menu-bar {
     background-color: transparent;
@@ -9048,10 +9065,10 @@ h1, h2, h3 {
     #header .menu-group a,
     #header .menu-bar a {
       background-color: transparent;
-      color: #E1E6EE;
+      color: #93B7BE;
       font-size: 1.125rem;
       font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
-      padding: 1.2rem 1.5rem 1.15rem;
+      padding: 1.2rem 1.5rem 1.1rem;
       transition: all 0.3s ease-in-out;
       font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
       font-weight: bold;
@@ -9059,47 +9076,46 @@ h1, h2, h3 {
       #header .menu-group a:hover,
       #header .menu-bar a:hover {
         color: #37B0E7; }
-
-#header .menu-group-left li:last-of-type a {
-  color: #2D3047; }
-
-#header .menu-group-left li + li:before {
-  content: ">";
-  display: inline-block;
-  color: #E1E6EE;
-  padding: 1rem 0;
-  font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
-  font-weight: bold;
-  letter-spacing: 0.025em; }
-
-#header .icon-right a {
-  padding-right: 1rem; }
-  #header .icon-right a .rounded {
-    background: white;
-    border-radius: 50%;
-    border: 1px solid #37B0E7;
-    color: #E1E6EE;
-    margin-right: 1.5rem;
-    margin-top: -2px;
-    font-size: 1.25rem;
-    width: 1.333rem;
-    text-align: center;
-    transition: all 0.3s ease-in-out; }
-  #header .icon-right a small {
-    width: 5px; }
-    #header .icon-right a small .icon {
-      position: absolute;
-      right: 1.25rem;
-      top: 1.5rem;
-      width: 7px;
-      color: #37B0E7; }
-  #header .icon-right a:hover .rounded {
-    color: #c9d2e0; }
-  #header .icon-right a:hover small .icon {
+  #header .menu-group-left ul.menu-bar li:last-child a,
+  #header .menu-group-left ul.menu-bar li.active a {
     color: #2D3047; }
+  #header .menu-group-left ul.menu-bar li + li:before {
+    content: ">";
+    display: inline-block;
+    color: #93B7BE;
+    opacity: 0.5;
+    padding: 1rem 0;
+    font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
+    font-weight: bold;
+    letter-spacing: 0.025em; }
+  #header .icon-right a {
+    padding-right: 1rem; }
+    #header .icon-right a .rounded {
+      background: white;
+      border-radius: 50%;
+      border: 1px solid #37B0E7;
+      color: #E1E6EE;
+      margin-right: 1.5rem;
+      margin-top: -2px;
+      font-size: 1.25rem;
+      width: 1.333rem;
+      text-align: center;
+      transition: all 0.3s ease-in-out; }
+    #header .icon-right a small {
+      width: 5px; }
+      #header .icon-right a small .icon {
+        position: absolute;
+        right: 1.25rem;
+        top: 1.5rem;
+        width: 7px;
+        color: #37B0E7; }
+    #header .icon-right a:hover .rounded {
+      color: #c9d2e0; }
+    #header .icon-right a:hover small .icon {
+      color: #2D3047; }
 
 footer {
-  border-top: 2px solid #F4F5F7;
+  border-top: 2px solid #E1E6EE;
   margin-top: 3.5rem;
   opacity: 1;
   transition: all 0.3s ease-in-out; }
@@ -9116,3 +9132,34 @@ footer {
       footer ul li a {
         color: #37B0E7;
         padding: 0.75rem 0.5rem 1rem 0.5rem; }
+
+.build-list {
+  margin-top: 2rem; }
+  .build-list .build-item {
+    border: none; }
+    .build-list .build-item:first-child {
+      border: none; }
+    .build-list .build-item a {
+      text-align: left;
+      padding: 0.25rem 1.25rem;
+      margin: 0 0 0.25rem 0;
+      border-radius: 2px;
+      transition: all 0.3s ease-in-out; }
+      .build-list .build-item a div {
+        font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+        display: inline-block;
+        padding-right: 0.5rem;
+        font-size: 0.925rem;
+        letter-spacing: -0.025em; }
+      .build-list .build-item a .act-state {
+        padding-top: 1rem; }
+        .build-list .build-item a .act-state .icon {
+          font-size: 1.5rem; }
+        .build-list .build-item a .act-state .icon-green {
+          color: #70AE29; }
+      .build-list .build-item a .act-author .avatar {
+        max-width: 30px;
+        border-radius: 0.25rem; }
+      .build-list .build-item a:hover {
+        background: white;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
