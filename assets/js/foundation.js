@@ -44735,6 +44735,114 @@ angular.module('markdown', [])
 (function() {
   'use strict';
 
+  angular.module('foundation.accordion', [])
+    .controller('ZfAccordionController', zfAccordionController)
+    .directive('zfAccordion', zfAccordion)
+    .directive('zfAccordionItem', zfAccordionItem)
+  ;
+
+  zfAccordionController.$inject = ['$scope'];
+
+  function zfAccordionController($scope) {
+    var controller = this;
+    var sections = controller.sections = $scope.sections = [];
+    var multiOpen = controller.multiOpen = $scope.multiOpen = $scope.multiOpen || false;
+    var collapsible = controller.collapsible = $scope.collapsible = $scope.multiOpen || $scope.collapsible || true; //multi open infers a collapsible true
+    var autoOpen = controller.autoOpen = $scope.autoOpen = $scope.autoOpen || true; //auto open opens first tab on render
+
+    controller.select = function(selectSection) {
+      sections.forEach(function(section) {
+        //if multi open is allowed, toggle a tab
+        if(controller.multiOpen) {
+          if(section.scope === selectSection) {
+            section.scope.active = !section.scope.active;
+          }
+        } else {
+          //non  multi open will close all tabs and open one
+          if(section.scope === selectSection) {
+            //if collapsible is allowed, a tab will toggle
+            section.scope.active = collapsible ? !section.scope.active : true;
+          } else {
+            section.scope.active = false;
+          }
+        }
+
+      });
+    };
+
+    controller.addSection = function addsection(sectionScope) {
+      sections.push({ scope: sectionScope });
+
+      if(sections.length === 1 && autoOpen === true) {
+        sections[0].active = true;
+        sections[0].scope.active = true;
+      }
+    };
+
+    controller.closeAll = function() {
+      sections.forEach(function(section) {
+        section.scope.active = false;
+      });
+    };
+  }
+
+  function zfAccordion() {
+    var directive = {
+      restrict: 'EA',
+      transclude: 'true',
+      replace: true,
+      templateUrl: 'components/accordion/accordion.html',
+      controller: 'ZfAccordionController',
+      scope: {
+        multiOpen: '@?',
+        collapsible: '@?',
+        autoOpen: '@?'
+      },
+      link: link
+    };
+
+    return directive;
+
+    function link(scope, element, attrs, controller) {
+      scope.multiOpen = controller.multiOpen = scope.multiOpen === "true" ? true : false;
+      scope.collapsible = controller.collapsible = scope.collapsible === "true" ? true : false;
+      scope.autoOpen = controller.autoOpen = scope.autoOpen === "true" ? true : false;
+    }
+  }
+
+  //accordion item
+  function zfAccordionItem() {
+    var directive = {
+        restrict: 'EA',
+        templateUrl: 'components/accordion/accordion-item.html',
+        transclude: true,
+        scope: {
+          title: '@'
+        },
+        require: '^zfAccordion',
+        replace: true,
+        controller: function() {},
+        link: link
+    };
+
+    return directive;
+
+    function link(scope, element, attrs, controller, transclude) {
+      scope.active = false;
+      controller.addSection(scope);
+
+      scope.activate = function() {
+        controller.select(scope);
+      };
+
+    }
+  }
+
+})();
+
+(function() {
+  'use strict';
+
   angular.module('foundation.actionsheet', ['foundation.core'])
     .controller('ZfActionSheetController', zfActionSheetController)
     .directive('zfActionSheet', zfActionSheet)
@@ -44991,114 +45099,6 @@ angular.module('markdown', [])
 (function() {
   'use strict';
 
-  angular.module('foundation.accordion', [])
-    .controller('ZfAccordionController', zfAccordionController)
-    .directive('zfAccordion', zfAccordion)
-    .directive('zfAccordionItem', zfAccordionItem)
-  ;
-
-  zfAccordionController.$inject = ['$scope'];
-
-  function zfAccordionController($scope) {
-    var controller = this;
-    var sections = controller.sections = $scope.sections = [];
-    var multiOpen = controller.multiOpen = $scope.multiOpen = $scope.multiOpen || false;
-    var collapsible = controller.collapsible = $scope.collapsible = $scope.multiOpen || $scope.collapsible || true; //multi open infers a collapsible true
-    var autoOpen = controller.autoOpen = $scope.autoOpen = $scope.autoOpen || true; //auto open opens first tab on render
-
-    controller.select = function(selectSection) {
-      sections.forEach(function(section) {
-        //if multi open is allowed, toggle a tab
-        if(controller.multiOpen) {
-          if(section.scope === selectSection) {
-            section.scope.active = !section.scope.active;
-          }
-        } else {
-          //non  multi open will close all tabs and open one
-          if(section.scope === selectSection) {
-            //if collapsible is allowed, a tab will toggle
-            section.scope.active = collapsible ? !section.scope.active : true;
-          } else {
-            section.scope.active = false;
-          }
-        }
-
-      });
-    };
-
-    controller.addSection = function addsection(sectionScope) {
-      sections.push({ scope: sectionScope });
-
-      if(sections.length === 1 && autoOpen === true) {
-        sections[0].active = true;
-        sections[0].scope.active = true;
-      }
-    };
-
-    controller.closeAll = function() {
-      sections.forEach(function(section) {
-        section.scope.active = false;
-      });
-    };
-  }
-
-  function zfAccordion() {
-    var directive = {
-      restrict: 'EA',
-      transclude: 'true',
-      replace: true,
-      templateUrl: 'components/accordion/accordion.html',
-      controller: 'ZfAccordionController',
-      scope: {
-        multiOpen: '@?',
-        collapsible: '@?',
-        autoOpen: '@?'
-      },
-      link: link
-    };
-
-    return directive;
-
-    function link(scope, element, attrs, controller) {
-      scope.multiOpen = controller.multiOpen = scope.multiOpen === "true" ? true : false;
-      scope.collapsible = controller.collapsible = scope.collapsible === "true" ? true : false;
-      scope.autoOpen = controller.autoOpen = scope.autoOpen === "true" ? true : false;
-    }
-  }
-
-  //accordion item
-  function zfAccordionItem() {
-    var directive = {
-        restrict: 'EA',
-        templateUrl: 'components/accordion/accordion-item.html',
-        transclude: true,
-        scope: {
-          title: '@'
-        },
-        require: '^zfAccordion',
-        replace: true,
-        controller: function() {},
-        link: link
-    };
-
-    return directive;
-
-    function link(scope, element, attrs, controller, transclude) {
-      scope.active = false;
-      controller.addSection(scope);
-
-      scope.activate = function() {
-        controller.select(scope);
-      };
-
-    }
-  }
-
-})();
-
-(function() {
-  'use strict';
-
   angular.module('foundation.common', ['foundation.core'])
     .directive('zfClose', zfClose)
     .directive('zfOpen', zfOpen)
@@ -45311,632 +45311,6 @@ angular.module('markdown', [])
       return false;
     }
   }
-})();
-
-(function() {
-  'use strict';
-
-  angular.module('foundation.interchange', ['foundation.core', 'foundation.mediaquery'])
-    .directive('zfInterchange', zfInterchange)
-  ;
-
-  zfInterchange.$inject = [ '$compile', '$http', '$templateCache', 'FoundationApi', 'FoundationMQ'];
-
-  function zfInterchange($compile, $http, $templateCache, foundationApi, foundationMQ) {
-
-    var directive = {
-      restrict: 'EA',
-      transclude: 'element',
-      scope: {
-        position: '@'
-      },
-      replace: true,
-      template: '<div></div>',
-      link: link
-    };
-
-    return directive;
-
-    function link(scope, element, attrs, ctrl, transclude) {
-      var childScope, current, scenarios, innerTemplates;
-
-      var globalQueries = foundationMQ.getMediaQueries();
-
-      //setup
-      foundationApi.subscribe('resize', function(msg) {
-        transclude(function(clone, newScope) {
-          if(!scenarios || !innerTemplates) {
-            collectInformation(clone);
-          }
-
-          var ruleMatches = foundationMQ.match(scenarios);
-          var scenario = ruleMatches.length === 0 ? null : scenarios[ruleMatches[0].ind];
-
-          //this could use some love
-          if(scenario && checkScenario(scenario)) {
-            var compiled;
-
-            if(childScope) {
-              childScope.$destroy();
-              childScope = null;
-            }
-
-            if(typeof scenario.templ !== 'undefined') {
-              childScope = newScope;
-
-              //temp container
-              var tmp = document.createElement('div');
-              tmp.appendChild(innerTemplates[scenario.templ][0]);
-
-              element.html(tmp.innerHTML);
-              $compile(element.contents())(childScope);
-              current = scenario;
-            } else {
-              var loader = templateLoader(scenario.src);
-              loader.success(function(html) {
-                childScope = newScope;
-                element.html(html);
-              }).then(function(){
-                $compile(element.contents())(childScope);
-                current = scenario;
-              });
-            }
-          }
-        });
-
-      });
-
-      //init
-      foundationApi.publish('resize', 'initial resize');
-
-      function templateLoader(templateUrl) {
-        return $http.get(templateUrl, {cache: $templateCache});
-      }
-
-      function collectInformation(el) {
-        var data = foundationMQ.collectScenariosFromElement(el);
-
-        scenarios = data.scenarios;
-        innerTemplates = data.templates;
-      }
-
-      function checkScenario(scenario) {
-        return !current || current !== scenario;
-      }
-    }
-  }
-
-  angular.module('foundation.interchange')
-  /*
-   * Final directive to perform media queries, other directives set up this one
-   * (See: http://stackoverflow.com/questions/19224028/add-directives-from-directive-in-angularjs)
-   */
-    .directive('zfQuery', zfQuery)
-  /*
-   * zf-if / zf-show / zf-hide
-   */
-    .directive('zfIf', zfQueryDirective('ng-if', 'zf-if'))
-    .directive('zfShow', zfQueryDirective('ng-show', 'zf-show'))
-    .directive('zfHide', zfQueryDirective('ng-hide', 'zf-hide'))
-  ;
-
-  /*
-   * This directive will configure ng-if/ng-show/ng-hide and zf-query directives and then recompile the element
-   */
-  function zfQueryDirective(angularDirective, directiveName) {
-    return ['$compile', 'FoundationApi', function ($compile, foundationApi) {
-      // create unique scope property for media query result, must be unique to avoid collision with other zf-query directives
-      // property set upon element compilation or else all similar directives (i.e. zf-if-*/zf-show-*/zf-hide-*) will get the same value
-      var queryResult;
-
-      return {
-        priority: 1000, // must compile directive before any others
-        terminal: true, // don't compile any other directive after this
-                        // we'll fix this with a recompile
-        restrict: 'A',
-        compile: compile
-      };
-
-      // From here onward, scope[queryResult] refers to the result of running the provided query
-      function compile(element, attrs) {
-        var previousParam;
-
-        // set unique property
-        queryResult = (directiveName + foundationApi.generateUuid()).replace(/-/g,'');
-
-        // set default configuration
-        element.attr('zf-query-not', false);
-        element.attr('zf-query-only', false);
-        element.attr('zf-query-or-smaller', false);
-        element.attr('zf-query-scope-prop', queryResult);
-
-        // parse directive attribute for query parameters
-        element.attr(directiveName).split(' ').forEach(function(param) {
-          if (param) {
-            // add zf-query directive and configuration attributes
-            switch (param) {
-              case "not":
-                element.attr('zf-query-not', true);
-                element.attr('zf-query-only', true);
-                break;
-              case "only":
-                element.attr('zf-query-only', true);
-                break;
-              case "or":
-                break;
-              case "smaller":
-                // allow usage of smaller keyword if preceeded by 'or' keyword
-                if (previousParam === "or") {
-                  element.attr('zf-query-or-smaller', true);
-                }
-                break;
-              default:
-                element.attr('zf-query', param);
-                break;
-            }
-
-            previousParam = param;
-          }
-        });
-
-        // add/update angular directive
-        if (!element.attr(angularDirective)) {
-          element.attr(angularDirective, queryResult);
-        } else {
-          element.attr(angularDirective, queryResult + ' && (' + element.attr(angularDirective) + ')');
-        }
-
-        // remove directive from current element to avoid infinite recompile
-        element.removeAttr(directiveName);
-        element.removeAttr('data-' + directiveName);
-
-        return {
-          pre: function (scope, element, attrs) {
-          },
-          post: function (scope, element, attrs) {
-            // recompile
-            $compile(element)(scope);
-          }
-        };
-      }
-    }];
-  }
-
-  zfQuery.$inject = ['FoundationApi', 'FoundationMQ'];
-  function zfQuery(foundationApi, foundationMQ) {
-    return {
-      priority: 601, // must compile before ng-if (600)
-      restrict: 'A',
-      compile: function compile(element, attrs) {
-        return compileWrapper(attrs['zfQueryScopeProp'],
-                              attrs['zfQuery'],
-                              attrs['zfQueryOnly'] === "true",
-                              attrs['zfQueryNot'] === "true",
-                              attrs['zfQueryOrSmaller'] === "true");
-      }
-    };
-
-    // parameters will be populated with values provided from zf-query-* attributes
-    function compileWrapper(queryResult, namedQuery, queryOnly, queryNot, queryOrSmaller) {
-      // set defaults
-      queryOnly = queryOnly || false;
-      queryNot = queryNot || false;
-
-      return {
-        pre: preLink,
-        post: postLink
-      };
-
-      // From here onward, scope[queryResult] refers to the result of running the provided query
-      function preLink(scope, element, attrs) {
-        // initially set media query result to false
-        scope[queryResult] = false;
-      }
-
-      function postLink(scope, element, attrs) {
-        // subscribe for resize events
-        foundationApi.subscribe('resize', function() {
-          var orignalVisibilty = scope[queryResult];
-          runQuery();
-          if (orignalVisibilty != scope[queryResult]) {
-            // digest if visibility changed
-            scope.$digest();
-          }
-        });
-
-        scope.$on("$destroy", function() {
-          foundationApi.unsubscribe('resize');
-        });
-
-        // run first media query check
-        runQuery();
-
-        function runQuery() {
-          if (!queryOnly) {
-            if (!queryOrSmaller) {
-              // Check if matches media or LARGER
-              scope[queryResult] = foundationMQ.matchesMedia(namedQuery);
-            } else {
-              // Check if matches media or SMALLER
-              scope[queryResult] = foundationMQ.matchesMediaOrSmaller(namedQuery);
-            }
-          } else {
-            if (!queryNot) {
-              // Check that media ONLY matches named query and nothing else
-              scope[queryResult] = foundationMQ.matchesMediaOnly(namedQuery);
-            } else {
-              // Check that media does NOT match named query
-              scope[queryResult] = !foundationMQ.matchesMediaOnly(namedQuery);
-            }
-          }
-        }
-      }
-    }
-  }
-})();
-
-(function () {
-  'use strict';
-
-  angular.module('foundation.iconic', [])
-    .provider('Iconic', Iconic)
-    .directive('zfIconic', zfIconic)
-  ;
-
-  // iconic wrapper
-  function Iconic() {
-    // default path
-    var assetPath = 'assets/img/iconic/';
-
-    /**
-     * Sets the path used to locate the iconic SVG files
-     * @param {string} path - the base path used to locate the iconic SVG files
-     */
-    this.setAssetPath = function (path) {
-      assetPath = angular.isString(path) ? path : assetPath;
-    };
-
-    /**
-     * Service implementation
-     * @returns {{}}
-     */
-    this.$get = function () {
-      var iconicObject = new IconicJS();
-
-      var service = {
-        getAccess: getAccess,
-        getAssetPath: getAssetPath
-      };
-
-      return service;
-
-      /**
-       *
-       * @returns {Window.IconicJS}
-       */
-      function getAccess() {
-        return iconicObject;
-      }
-
-      /**
-       *
-       * @returns {string}
-       */
-      function getAssetPath() {
-        return assetPath;
-      }
-    };
-  }
-
-  zfIconic.$inject = ['Iconic', 'FoundationApi', '$compile'];
-
-  function zfIconic(iconic, foundationApi, $compile) {
-    var directive = {
-      restrict: 'A',
-      template: '<img ng-transclude>',
-      transclude: true,
-      replace: true,
-      scope: {
-        dynSrc: '=?',
-        dynIcon: '=?',
-        dynIconAttrs: '=?',
-        size: '@?',
-        icon: '@',
-        iconDir: '@?',
-        iconAttrs: '=?'
-      },
-      compile: compile
-    };
-
-    return directive;
-
-    function compile() {
-      var contents, origAttrs, lastIconAttrs, assetPath;
-
-      return {
-        pre: preLink,
-        post: postLink
-      };
-
-      function preLink(scope, element, attrs) {
-        var iconAttrsObj, iconAttr;
-
-        if (scope.iconDir) {
-          // path set via attribute
-          assetPath = scope.iconDir;
-        } else {
-          // default path
-          assetPath = iconic.getAssetPath();
-        }
-        // make sure ends with /
-        if (assetPath.charAt(assetPath.length - 1) !== '/') {
-          assetPath += '/';
-        }
-
-        if (scope.dynSrc) {
-          attrs.$set('data-src', scope.dynSrc);
-        } else if (scope.dynIcon) {
-          attrs.$set('data-src', assetPath + scope.dynIcon + '.svg');
-        } else {
-          if (scope.icon) {
-            attrs.$set('data-src', assetPath + scope.icon + '.svg');
-          } else {
-            // To support expressions on data-src
-            attrs.$set('data-src', attrs.src);
-          }
-        }
-
-        // check if size already added as class
-        if (!element.hasClass('iconic-sm') && !element.hasClass('iconic-md') && !element.hasClass('iconic-lg')) {
-          var iconicClass;
-          switch (scope.size) {
-            case 'small':
-              iconicClass = 'iconic-sm';
-              break;
-            case 'medium':
-              iconicClass = 'iconic-md';
-              break;
-            case 'large':
-              iconicClass = 'iconic-lg';
-              break;
-            default:
-              iconicClass = 'iconic-fluid';
-          }
-          element.addClass(iconicClass);
-        }
-
-        // add static icon attributes to iconic element
-        if (scope.iconAttrs) {
-          iconAttrsObj = angular.fromJson(scope.iconAttrs);
-          for (iconAttr in iconAttrsObj) {
-            // add data- to attribute name if not already present
-            attrs.$set(addDataDash(iconAttr), iconAttrsObj[iconAttr]);
-          }
-        }
-
-        // save contents and attributes of un-inject html, to use for dynamic re-injection
-        contents = element[0].outerHTML;
-        origAttrs = element[0].attributes;
-      }
-
-      function postLink(scope, element, attrs) {
-        var svgElement, ico = iconic.getAccess();
-
-        injectSvg(element[0]);
-
-        foundationApi.subscribe('resize', function () {
-          // only run update on current element
-          ico.update(element[0]);
-        });
-
-        // handle dynamic updating of src
-        if (scope.dynSrc) {
-          scope.$watch('dynSrc', function (newVal, oldVal) {
-            if (newVal && newVal !== oldVal) {
-              reinjectSvg(scope.dynSrc, scope.dynIconAttrs);
-            }
-          });
-        }
-        // handle dynamic updating of icon
-        if (scope.dynIcon) {
-          scope.$watch('dynIcon', function (newVal, oldVal) {
-            if (newVal && newVal !== oldVal) {
-              reinjectSvg(assetPath + scope.dynIcon + '.svg', scope.dynIconAttrs);
-            }
-          });
-        }
-        // handle dynamic updating of icon attrs
-        scope.$watch('dynIconAttrs', function (newVal, oldVal) {
-          if (newVal && newVal !== oldVal) {
-            if (scope.dynSrc) {
-              reinjectSvg(scope.dynSrc, scope.dynIconAttrs);
-            } else {
-              reinjectSvg(assetPath + scope.dynIcon + '.svg', scope.dynIconAttrs);
-            }
-          }
-        });
-
-        function reinjectSvg(newSrc, newAttrs) {
-          var iconAttr;
-
-          if (svgElement) {
-            // set html
-            svgElement.empty();
-            svgElement.append(angular.element(contents));
-
-            // remove 'data-icon' attribute added by injector as it
-            // will cause issues with reinjection when changing icons
-            svgElement.removeAttr('data-icon');
-
-            // set new source
-            svgElement.attr('data-src', newSrc);
-
-            // add additional icon attributes to iconic element
-            if (newAttrs) {
-              // remove previously added attributes
-              if (lastIconAttrs) {
-                for (iconAttr in lastIconAttrs) {
-                  svgElement.removeAttr(addDataDash(iconAttr));
-                }
-              }
-
-              // add newly added attributes
-              for (iconAttr in newAttrs) {
-                // add data- to attribute name if not already present
-                svgElement.attr(addDataDash(iconAttr), newAttrs[iconAttr]);
-              }
-            }
-
-            // store current attrs
-            lastIconAttrs = newAttrs;
-
-            // reinject
-            injectSvg(svgElement[0]);
-          }
-        }
-
-        function injectSvg(element) {
-          ico.inject(element, {
-            each: function (injectedElem) {
-
-              var i, angElem, elemScope;
-
-              // wrap raw element
-              angElem = angular.element(injectedElem);
-
-              for(i = 0; i < origAttrs.length; i++) {
-                // check if attribute should be ignored
-                if (origAttrs[i].name !== 'zf-iconic' &&
-                  origAttrs[i].name !== 'ng-transclude' &&
-                  origAttrs[i].name !== 'icon' &&
-                  origAttrs[i].name !== 'src') {
-                  // check if attribute already exists on svg
-                  if (angular.isUndefined(angElem.attr(origAttrs[i].name))) {
-                    // add attribute to svg
-                    angElem.attr(origAttrs[i].name, origAttrs[i].value);
-                  }
-                }
-              }
-
-              // compile
-              elemScope = angElem.scope();
-              if (elemScope) {
-                svgElement = $compile(angElem)(elemScope);
-              }
-            }
-          });
-        }
-      }
-
-      function addDataDash(attr) {
-        return attr.indexOf('data-') !== 0 ? 'data-' + attr : attr;
-      }
-    }
-  }
-
-})();
-
-(function() {
-  'use strict';
-
-  angular.module('foundation.offcanvas', ['foundation.core'])
-    .directive('zfOffcanvas', zfOffcanvas)
-    .service('FoundationOffcanvas', FoundationOffcanvas)
-  ;
-
-  FoundationOffcanvas.$inject = ['FoundationApi'];
-
-  function FoundationOffcanvas(foundationApi) {
-    var service    = {};
-
-    service.activate = activate;
-    service.deactivate = deactivate;
-
-    return service;
-
-    //target should be element ID
-    function activate(target) {
-      foundationApi.publish(target, 'show');
-    }
-
-    //target should be element ID
-    function deactivate(target) {
-      foundationApi.publish(target, 'hide');
-    }
-
-    function toggle(target) {
-      foundationApi.publish(target, 'toggle');
-    }
-  }
-
-  zfOffcanvas.$inject = ['FoundationApi'];
-
-  function zfOffcanvas(foundationApi) {
-    var directive = {
-      restrict: 'EA',
-      templateUrl: 'components/offcanvas/offcanvas.html',
-      transclude: true,
-      scope: {
-        position: '@'
-      },
-      replace: true,
-      compile: compile
-    };
-
-    return directive;
-
-    function compile(tElement, tAttrs, transclude) {
-      var type = 'offcanvas';
-
-      return {
-        pre: preLink,
-        post: postLink
-      };
-
-      function preLink(scope, iElement, iAttrs, controller) {
-        iAttrs.$set('zf-closable', type);
-        document.body.classList.add('has-off-canvas');
-      }
-
-      function postLink(scope, element, attrs) {
-        scope.position = scope.position || 'left';
-
-        scope.active = false;
-        //setup
-        foundationApi.subscribe(attrs.id, function(msg) {
-          if(msg === 'show' || msg === 'open') {
-            scope.show();
-          } else if (msg === 'close' || msg === 'hide') {
-            scope.hide();
-          } else if (msg === 'toggle') {
-            scope.toggle();
-          }
-
-          if (!scope.$root.$$phase) {
-            scope.$apply();
-          }
-
-          return;
-        });
-
-        scope.hide = function() {
-          scope.active = false;
-          return;
-        };
-
-        scope.show = function() {
-          scope.active = true;
-          return;
-        };
-
-        scope.toggle = function() {
-          scope.active = !scope.active;
-          return;
-        };
-      }
-    }
-  }
-
 })();
 
 (function() {
@@ -46264,167 +45638,261 @@ angular.module('markdown', [])
 
 })();
 
-(function() {
+(function () {
   'use strict';
 
-  angular.module('foundation.panel', ['foundation.core'])
-    .directive('zfPanel', zfPanel)
-    .service('FoundationPanel', FoundationPanel)
+  angular.module('foundation.iconic', [])
+    .provider('Iconic', Iconic)
+    .directive('zfIconic', zfIconic)
   ;
 
-  FoundationPanel.$inject = ['FoundationApi'];
+  // iconic wrapper
+  function Iconic() {
+    // default path
+    var assetPath = 'assets/img/iconic/';
 
-  function FoundationPanel(foundationApi) {
-    var service    = {};
+    /**
+     * Sets the path used to locate the iconic SVG files
+     * @param {string} path - the base path used to locate the iconic SVG files
+     */
+    this.setAssetPath = function (path) {
+      assetPath = angular.isString(path) ? path : assetPath;
+    };
 
-    service.activate = activate;
-    service.deactivate = deactivate;
+    /**
+     * Service implementation
+     * @returns {{}}
+     */
+    this.$get = function () {
+      var iconicObject = new IconicJS();
 
-    return service;
+      var service = {
+        getAccess: getAccess,
+        getAssetPath: getAssetPath
+      };
 
-    //target should be element ID
-    function activate(target) {
-      foundationApi.publish(target, 'show');
-    }
+      return service;
 
-    //target should be element ID
-    function deactivate(target) {
-      foundationApi.publish(target, 'hide');
-    }
+      /**
+       *
+       * @returns {Window.IconicJS}
+       */
+      function getAccess() {
+        return iconicObject;
+      }
+
+      /**
+       *
+       * @returns {string}
+       */
+      function getAssetPath() {
+        return assetPath;
+      }
+    };
   }
 
-  zfPanel.$inject = ['FoundationApi', '$window'];
+  zfIconic.$inject = ['Iconic', 'FoundationApi', '$compile'];
 
-  function zfPanel(foundationApi, $window) {
+  function zfIconic(iconic, foundationApi, $compile) {
     var directive = {
-      restrict: 'EA',
-      templateUrl: 'components/panel/panel.html',
+      restrict: 'A',
+      template: '<img ng-transclude>',
       transclude: true,
-      scope: {
-        position: '@?'
-      },
       replace: true,
+      scope: {
+        dynSrc: '=?',
+        dynIcon: '=?',
+        dynIconAttrs: '=?',
+        size: '@?',
+        icon: '@',
+        iconDir: '@?',
+        iconAttrs: '=?'
+      },
       compile: compile
     };
 
     return directive;
 
-    function compile(tElement, tAttrs, transclude) {
-      var type = 'panel';
-      var animate = tAttrs.hasOwnProperty('zfAdvise') ? foundationApi.animateAndAdvise : foundationApi.animate;
+    function compile() {
+      var contents, origAttrs, lastIconAttrs, assetPath;
 
       return {
         pre: preLink,
         post: postLink
       };
 
-      function preLink(scope, iElement, iAttrs, controller) {
-        iAttrs.$set('zf-closable', type);
-        scope.position = scope.position || 'left';
-        scope.positionClass = 'panel-' + scope.position;
+      function preLink(scope, element, attrs) {
+        var iconAttrsObj, iconAttr;
+
+        if (scope.iconDir) {
+          // path set via attribute
+          assetPath = scope.iconDir;
+        } else {
+          // default path
+          assetPath = iconic.getAssetPath();
+        }
+        // make sure ends with /
+        if (assetPath.charAt(assetPath.length - 1) !== '/') {
+          assetPath += '/';
+        }
+
+        if (scope.dynSrc) {
+          attrs.$set('data-src', scope.dynSrc);
+        } else if (scope.dynIcon) {
+          attrs.$set('data-src', assetPath + scope.dynIcon + '.svg');
+        } else {
+          if (scope.icon) {
+            attrs.$set('data-src', assetPath + scope.icon + '.svg');
+          } else {
+            // To support expressions on data-src
+            attrs.$set('data-src', attrs.src);
+          }
+        }
+
+        // check if size already added as class
+        if (!element.hasClass('iconic-sm') && !element.hasClass('iconic-md') && !element.hasClass('iconic-lg')) {
+          var iconicClass;
+          switch (scope.size) {
+            case 'small':
+              iconicClass = 'iconic-sm';
+              break;
+            case 'medium':
+              iconicClass = 'iconic-md';
+              break;
+            case 'large':
+              iconicClass = 'iconic-lg';
+              break;
+            default:
+              iconicClass = 'iconic-fluid';
+          }
+          element.addClass(iconicClass);
+        }
+
+        // add static icon attributes to iconic element
+        if (scope.iconAttrs) {
+          iconAttrsObj = angular.fromJson(scope.iconAttrs);
+          for (iconAttr in iconAttrsObj) {
+            // add data- to attribute name if not already present
+            attrs.$set(addDataDash(iconAttr), iconAttrsObj[iconAttr]);
+          }
+        }
+
+        // save contents and attributes of un-inject html, to use for dynamic re-injection
+        contents = element[0].outerHTML;
+        origAttrs = element[0].attributes;
       }
 
       function postLink(scope, element, attrs) {
-        scope.active = false;
-        var animationIn, animationOut;
-        var globalQueries = foundationApi.getSettings().mediaQueries;
-        var setAnim = {
-          left: function(){
-            animationIn  = attrs.animationIn || 'slideInRight';
-            animationOut = attrs.animationOut || 'slideOutLeft';
-          },
-          right: function(){
-            animationIn  = attrs.animationIn || 'slideInLeft';
-            animationOut = attrs.animationOut || 'slideOutRight';
-          },
-          top: function(){
-            animationIn  = attrs.animationIn || 'slideInDown';
-            animationOut = attrs.animationOut || 'slideOutUp';
-          },
-          bottom: function(){
-            animationIn  = attrs.animationIn || 'slideInUp';
-            animationOut = attrs.animationOut || 'slideOutDown';
-          }
-        };
-        setAnim[scope.position]();
-        //urgh, there must be a better way, ***there totally is btw***
-        // if(scope.position === 'left') {
-        //   animationIn  = attrs.animationIn || 'slideInRight';
-        //   animationOut = attrs.animationOut || 'slideOutLeft';
-        // } else if (scope.position === 'right') {
-        //   animationIn  = attrs.animationIn || 'slideInLeft';
-        //   animationOut = attrs.animationOut || 'slideOutRight';
-        // } else if (scope.position === 'top') {
-        //   animationIn  = attrs.animationIn || 'slideInDown';
-        //   animationOut = attrs.animationOut || 'slideOutUp';
-        // } else if (scope.position === 'bottom') {
-        //   animationIn  = attrs.animationIn || 'slideInUp';
-        //   animationOut = attrs.animationOut || 'slideOutDown';
-        // }
+        var svgElement, ico = iconic.getAccess();
 
+        injectSvg(element[0]);
 
-        //setup
-        foundationApi.subscribe(attrs.id, function(msg) {
-          var panelPosition = $window.getComputedStyle(element[0]).getPropertyValue("position");
-
-          // patch to prevent panel animation on larger screen devices
-          // don't run animation on grid elements, only panel
-          if (panelPosition == 'static' || panelPosition == 'relative') {
-            return;
-          }
-
-          if(msg == 'show' || msg == 'open') {
-            scope.show();
-          } else if (msg == 'close' || msg == 'hide') {
-            scope.hide();
-          } else if (msg == 'toggle') {
-            scope.toggle();
-          }
-
-          if (!scope.$root.$$phase) {
-            scope.$apply();
-          }
-
-          return;
+        foundationApi.subscribe('resize', function () {
+          // only run update on current element
+          ico.update(element[0]);
         });
 
-        // function finish(el)
-
-        scope.hide = function() {
-          if(scope.active){
-            scope.active = false;
-            animate(element, scope.active, animationIn, animationOut);
-          }
-
-          return;
-        };
-
-        scope.show = function() {
-          if(!scope.active){
-            scope.active = true;
-            animate(element, scope.active, animationIn, animationOut);
-          }
-
-          return;
-        };
-
-        scope.toggle = function() {
-          scope.active = !scope.active;
-          animate(element, scope.active, animationIn, animationOut);
-
-          return;
-        };
-
-        element.on('click', function(e) {
-          // Check sizing
-          var srcEl = e.target;
-
-          if (!matchMedia(globalQueries.medium).matches && srcEl.href && srcEl.href.length > 0) {
-            // Hide element if it can't match at least medium
-            scope.hide();
-            animate(element, scope.active, animationIn, animationOut);
+        // handle dynamic updating of src
+        if (scope.dynSrc) {
+          scope.$watch('dynSrc', function (newVal, oldVal) {
+            if (newVal && newVal !== oldVal) {
+              reinjectSvg(scope.dynSrc, scope.dynIconAttrs);
+            }
+          });
+        }
+        // handle dynamic updating of icon
+        if (scope.dynIcon) {
+          scope.$watch('dynIcon', function (newVal, oldVal) {
+            if (newVal && newVal !== oldVal) {
+              reinjectSvg(assetPath + scope.dynIcon + '.svg', scope.dynIconAttrs);
+            }
+          });
+        }
+        // handle dynamic updating of icon attrs
+        scope.$watch('dynIconAttrs', function (newVal, oldVal) {
+          if (newVal && newVal !== oldVal) {
+            if (scope.dynSrc) {
+              reinjectSvg(scope.dynSrc, scope.dynIconAttrs);
+            } else {
+              reinjectSvg(assetPath + scope.dynIcon + '.svg', scope.dynIconAttrs);
+            }
           }
         });
+
+        function reinjectSvg(newSrc, newAttrs) {
+          var iconAttr;
+
+          if (svgElement) {
+            // set html
+            svgElement.empty();
+            svgElement.append(angular.element(contents));
+
+            // remove 'data-icon' attribute added by injector as it
+            // will cause issues with reinjection when changing icons
+            svgElement.removeAttr('data-icon');
+
+            // set new source
+            svgElement.attr('data-src', newSrc);
+
+            // add additional icon attributes to iconic element
+            if (newAttrs) {
+              // remove previously added attributes
+              if (lastIconAttrs) {
+                for (iconAttr in lastIconAttrs) {
+                  svgElement.removeAttr(addDataDash(iconAttr));
+                }
+              }
+
+              // add newly added attributes
+              for (iconAttr in newAttrs) {
+                // add data- to attribute name if not already present
+                svgElement.attr(addDataDash(iconAttr), newAttrs[iconAttr]);
+              }
+            }
+
+            // store current attrs
+            lastIconAttrs = newAttrs;
+
+            // reinject
+            injectSvg(svgElement[0]);
+          }
+        }
+
+        function injectSvg(element) {
+          ico.inject(element, {
+            each: function (injectedElem) {
+
+              var i, angElem, elemScope;
+
+              // wrap raw element
+              angElem = angular.element(injectedElem);
+
+              for(i = 0; i < origAttrs.length; i++) {
+                // check if attribute should be ignored
+                if (origAttrs[i].name !== 'zf-iconic' &&
+                  origAttrs[i].name !== 'ng-transclude' &&
+                  origAttrs[i].name !== 'icon' &&
+                  origAttrs[i].name !== 'src') {
+                  // check if attribute already exists on svg
+                  if (angular.isUndefined(angElem.attr(origAttrs[i].name))) {
+                    // add attribute to svg
+                    angElem.attr(origAttrs[i].name, origAttrs[i].value);
+                  }
+                }
+              }
+
+              // compile
+              elemScope = angElem.scope();
+              if (elemScope) {
+                svgElement = $compile(angElem)(elemScope);
+              }
+            }
+          });
+        }
+      }
+
+      function addDataDash(attr) {
+        return attr.indexOf('data-') !== 0 ? 'data-' + attr : attr;
       }
     }
   }
@@ -46856,6 +46324,538 @@ angular.module('markdown', [])
     }
 
   }
+})();
+
+(function() {
+  'use strict';
+
+  angular.module('foundation.interchange', ['foundation.core', 'foundation.mediaquery'])
+    .directive('zfInterchange', zfInterchange)
+  ;
+
+  zfInterchange.$inject = [ '$compile', '$http', '$templateCache', 'FoundationApi', 'FoundationMQ'];
+
+  function zfInterchange($compile, $http, $templateCache, foundationApi, foundationMQ) {
+
+    var directive = {
+      restrict: 'EA',
+      transclude: 'element',
+      scope: {
+        position: '@'
+      },
+      replace: true,
+      template: '<div></div>',
+      link: link
+    };
+
+    return directive;
+
+    function link(scope, element, attrs, ctrl, transclude) {
+      var childScope, current, scenarios, innerTemplates;
+
+      var globalQueries = foundationMQ.getMediaQueries();
+
+      //setup
+      foundationApi.subscribe('resize', function(msg) {
+        transclude(function(clone, newScope) {
+          if(!scenarios || !innerTemplates) {
+            collectInformation(clone);
+          }
+
+          var ruleMatches = foundationMQ.match(scenarios);
+          var scenario = ruleMatches.length === 0 ? null : scenarios[ruleMatches[0].ind];
+
+          //this could use some love
+          if(scenario && checkScenario(scenario)) {
+            var compiled;
+
+            if(childScope) {
+              childScope.$destroy();
+              childScope = null;
+            }
+
+            if(typeof scenario.templ !== 'undefined') {
+              childScope = newScope;
+
+              //temp container
+              var tmp = document.createElement('div');
+              tmp.appendChild(innerTemplates[scenario.templ][0]);
+
+              element.html(tmp.innerHTML);
+              $compile(element.contents())(childScope);
+              current = scenario;
+            } else {
+              var loader = templateLoader(scenario.src);
+              loader.success(function(html) {
+                childScope = newScope;
+                element.html(html);
+              }).then(function(){
+                $compile(element.contents())(childScope);
+                current = scenario;
+              });
+            }
+          }
+        });
+
+      });
+
+      //init
+      foundationApi.publish('resize', 'initial resize');
+
+      function templateLoader(templateUrl) {
+        return $http.get(templateUrl, {cache: $templateCache});
+      }
+
+      function collectInformation(el) {
+        var data = foundationMQ.collectScenariosFromElement(el);
+
+        scenarios = data.scenarios;
+        innerTemplates = data.templates;
+      }
+
+      function checkScenario(scenario) {
+        return !current || current !== scenario;
+      }
+    }
+  }
+
+  angular.module('foundation.interchange')
+  /*
+   * Final directive to perform media queries, other directives set up this one
+   * (See: http://stackoverflow.com/questions/19224028/add-directives-from-directive-in-angularjs)
+   */
+    .directive('zfQuery', zfQuery)
+  /*
+   * zf-if / zf-show / zf-hide
+   */
+    .directive('zfIf', zfQueryDirective('ng-if', 'zf-if'))
+    .directive('zfShow', zfQueryDirective('ng-show', 'zf-show'))
+    .directive('zfHide', zfQueryDirective('ng-hide', 'zf-hide'))
+  ;
+
+  /*
+   * This directive will configure ng-if/ng-show/ng-hide and zf-query directives and then recompile the element
+   */
+  function zfQueryDirective(angularDirective, directiveName) {
+    return ['$compile', 'FoundationApi', function ($compile, foundationApi) {
+      // create unique scope property for media query result, must be unique to avoid collision with other zf-query directives
+      // property set upon element compilation or else all similar directives (i.e. zf-if-*/zf-show-*/zf-hide-*) will get the same value
+      var queryResult;
+
+      return {
+        priority: 1000, // must compile directive before any others
+        terminal: true, // don't compile any other directive after this
+                        // we'll fix this with a recompile
+        restrict: 'A',
+        compile: compile
+      };
+
+      // From here onward, scope[queryResult] refers to the result of running the provided query
+      function compile(element, attrs) {
+        var previousParam;
+
+        // set unique property
+        queryResult = (directiveName + foundationApi.generateUuid()).replace(/-/g,'');
+
+        // set default configuration
+        element.attr('zf-query-not', false);
+        element.attr('zf-query-only', false);
+        element.attr('zf-query-or-smaller', false);
+        element.attr('zf-query-scope-prop', queryResult);
+
+        // parse directive attribute for query parameters
+        element.attr(directiveName).split(' ').forEach(function(param) {
+          if (param) {
+            // add zf-query directive and configuration attributes
+            switch (param) {
+              case "not":
+                element.attr('zf-query-not', true);
+                element.attr('zf-query-only', true);
+                break;
+              case "only":
+                element.attr('zf-query-only', true);
+                break;
+              case "or":
+                break;
+              case "smaller":
+                // allow usage of smaller keyword if preceeded by 'or' keyword
+                if (previousParam === "or") {
+                  element.attr('zf-query-or-smaller', true);
+                }
+                break;
+              default:
+                element.attr('zf-query', param);
+                break;
+            }
+
+            previousParam = param;
+          }
+        });
+
+        // add/update angular directive
+        if (!element.attr(angularDirective)) {
+          element.attr(angularDirective, queryResult);
+        } else {
+          element.attr(angularDirective, queryResult + ' && (' + element.attr(angularDirective) + ')');
+        }
+
+        // remove directive from current element to avoid infinite recompile
+        element.removeAttr(directiveName);
+        element.removeAttr('data-' + directiveName);
+
+        return {
+          pre: function (scope, element, attrs) {
+          },
+          post: function (scope, element, attrs) {
+            // recompile
+            $compile(element)(scope);
+          }
+        };
+      }
+    }];
+  }
+
+  zfQuery.$inject = ['FoundationApi', 'FoundationMQ'];
+  function zfQuery(foundationApi, foundationMQ) {
+    return {
+      priority: 601, // must compile before ng-if (600)
+      restrict: 'A',
+      compile: function compile(element, attrs) {
+        return compileWrapper(attrs['zfQueryScopeProp'],
+                              attrs['zfQuery'],
+                              attrs['zfQueryOnly'] === "true",
+                              attrs['zfQueryNot'] === "true",
+                              attrs['zfQueryOrSmaller'] === "true");
+      }
+    };
+
+    // parameters will be populated with values provided from zf-query-* attributes
+    function compileWrapper(queryResult, namedQuery, queryOnly, queryNot, queryOrSmaller) {
+      // set defaults
+      queryOnly = queryOnly || false;
+      queryNot = queryNot || false;
+
+      return {
+        pre: preLink,
+        post: postLink
+      };
+
+      // From here onward, scope[queryResult] refers to the result of running the provided query
+      function preLink(scope, element, attrs) {
+        // initially set media query result to false
+        scope[queryResult] = false;
+      }
+
+      function postLink(scope, element, attrs) {
+        // subscribe for resize events
+        foundationApi.subscribe('resize', function() {
+          var orignalVisibilty = scope[queryResult];
+          runQuery();
+          if (orignalVisibilty != scope[queryResult]) {
+            // digest if visibility changed
+            scope.$digest();
+          }
+        });
+
+        scope.$on("$destroy", function() {
+          foundationApi.unsubscribe('resize');
+        });
+
+        // run first media query check
+        runQuery();
+
+        function runQuery() {
+          if (!queryOnly) {
+            if (!queryOrSmaller) {
+              // Check if matches media or LARGER
+              scope[queryResult] = foundationMQ.matchesMedia(namedQuery);
+            } else {
+              // Check if matches media or SMALLER
+              scope[queryResult] = foundationMQ.matchesMediaOrSmaller(namedQuery);
+            }
+          } else {
+            if (!queryNot) {
+              // Check that media ONLY matches named query and nothing else
+              scope[queryResult] = foundationMQ.matchesMediaOnly(namedQuery);
+            } else {
+              // Check that media does NOT match named query
+              scope[queryResult] = !foundationMQ.matchesMediaOnly(namedQuery);
+            }
+          }
+        }
+      }
+    }
+  }
+})();
+
+(function() {
+  'use strict';
+
+  angular.module('foundation.offcanvas', ['foundation.core'])
+    .directive('zfOffcanvas', zfOffcanvas)
+    .service('FoundationOffcanvas', FoundationOffcanvas)
+  ;
+
+  FoundationOffcanvas.$inject = ['FoundationApi'];
+
+  function FoundationOffcanvas(foundationApi) {
+    var service    = {};
+
+    service.activate = activate;
+    service.deactivate = deactivate;
+
+    return service;
+
+    //target should be element ID
+    function activate(target) {
+      foundationApi.publish(target, 'show');
+    }
+
+    //target should be element ID
+    function deactivate(target) {
+      foundationApi.publish(target, 'hide');
+    }
+
+    function toggle(target) {
+      foundationApi.publish(target, 'toggle');
+    }
+  }
+
+  zfOffcanvas.$inject = ['FoundationApi'];
+
+  function zfOffcanvas(foundationApi) {
+    var directive = {
+      restrict: 'EA',
+      templateUrl: 'components/offcanvas/offcanvas.html',
+      transclude: true,
+      scope: {
+        position: '@'
+      },
+      replace: true,
+      compile: compile
+    };
+
+    return directive;
+
+    function compile(tElement, tAttrs, transclude) {
+      var type = 'offcanvas';
+
+      return {
+        pre: preLink,
+        post: postLink
+      };
+
+      function preLink(scope, iElement, iAttrs, controller) {
+        iAttrs.$set('zf-closable', type);
+        document.body.classList.add('has-off-canvas');
+      }
+
+      function postLink(scope, element, attrs) {
+        scope.position = scope.position || 'left';
+
+        scope.active = false;
+        //setup
+        foundationApi.subscribe(attrs.id, function(msg) {
+          if(msg === 'show' || msg === 'open') {
+            scope.show();
+          } else if (msg === 'close' || msg === 'hide') {
+            scope.hide();
+          } else if (msg === 'toggle') {
+            scope.toggle();
+          }
+
+          if (!scope.$root.$$phase) {
+            scope.$apply();
+          }
+
+          return;
+        });
+
+        scope.hide = function() {
+          scope.active = false;
+          return;
+        };
+
+        scope.show = function() {
+          scope.active = true;
+          return;
+        };
+
+        scope.toggle = function() {
+          scope.active = !scope.active;
+          return;
+        };
+      }
+    }
+  }
+
+})();
+
+(function() {
+  'use strict';
+
+  angular.module('foundation.panel', ['foundation.core'])
+    .directive('zfPanel', zfPanel)
+    .service('FoundationPanel', FoundationPanel)
+  ;
+
+  FoundationPanel.$inject = ['FoundationApi'];
+
+  function FoundationPanel(foundationApi) {
+    var service    = {};
+
+    service.activate = activate;
+    service.deactivate = deactivate;
+
+    return service;
+
+    //target should be element ID
+    function activate(target) {
+      foundationApi.publish(target, 'show');
+    }
+
+    //target should be element ID
+    function deactivate(target) {
+      foundationApi.publish(target, 'hide');
+    }
+  }
+
+  zfPanel.$inject = ['FoundationApi', '$window'];
+
+  function zfPanel(foundationApi, $window) {
+    var directive = {
+      restrict: 'EA',
+      templateUrl: 'components/panel/panel.html',
+      transclude: true,
+      scope: {
+        position: '@?'
+      },
+      replace: true,
+      compile: compile
+    };
+
+    return directive;
+
+    function compile(tElement, tAttrs, transclude) {
+      var type = 'panel';
+      var animate = tAttrs.hasOwnProperty('zfAdvise') ? foundationApi.animateAndAdvise : foundationApi.animate;
+
+      return {
+        pre: preLink,
+        post: postLink
+      };
+
+      function preLink(scope, iElement, iAttrs, controller) {
+        iAttrs.$set('zf-closable', type);
+        scope.position = scope.position || 'left';
+        scope.positionClass = 'panel-' + scope.position;
+      }
+
+      function postLink(scope, element, attrs) {
+        scope.active = false;
+        var animationIn, animationOut;
+        var globalQueries = foundationApi.getSettings().mediaQueries;
+        var setAnim = {
+          left: function(){
+            animationIn  = attrs.animationIn || 'slideInRight';
+            animationOut = attrs.animationOut || 'slideOutLeft';
+          },
+          right: function(){
+            animationIn  = attrs.animationIn || 'slideInLeft';
+            animationOut = attrs.animationOut || 'slideOutRight';
+          },
+          top: function(){
+            animationIn  = attrs.animationIn || 'slideInDown';
+            animationOut = attrs.animationOut || 'slideOutUp';
+          },
+          bottom: function(){
+            animationIn  = attrs.animationIn || 'slideInUp';
+            animationOut = attrs.animationOut || 'slideOutDown';
+          }
+        };
+        setAnim[scope.position]();
+        //urgh, there must be a better way, ***there totally is btw***
+        // if(scope.position === 'left') {
+        //   animationIn  = attrs.animationIn || 'slideInRight';
+        //   animationOut = attrs.animationOut || 'slideOutLeft';
+        // } else if (scope.position === 'right') {
+        //   animationIn  = attrs.animationIn || 'slideInLeft';
+        //   animationOut = attrs.animationOut || 'slideOutRight';
+        // } else if (scope.position === 'top') {
+        //   animationIn  = attrs.animationIn || 'slideInDown';
+        //   animationOut = attrs.animationOut || 'slideOutUp';
+        // } else if (scope.position === 'bottom') {
+        //   animationIn  = attrs.animationIn || 'slideInUp';
+        //   animationOut = attrs.animationOut || 'slideOutDown';
+        // }
+
+
+        //setup
+        foundationApi.subscribe(attrs.id, function(msg) {
+          var panelPosition = $window.getComputedStyle(element[0]).getPropertyValue("position");
+
+          // patch to prevent panel animation on larger screen devices
+          // don't run animation on grid elements, only panel
+          if (panelPosition == 'static' || panelPosition == 'relative') {
+            return;
+          }
+
+          if(msg == 'show' || msg == 'open') {
+            scope.show();
+          } else if (msg == 'close' || msg == 'hide') {
+            scope.hide();
+          } else if (msg == 'toggle') {
+            scope.toggle();
+          }
+
+          if (!scope.$root.$$phase) {
+            scope.$apply();
+          }
+
+          return;
+        });
+
+        // function finish(el)
+
+        scope.hide = function() {
+          if(scope.active){
+            scope.active = false;
+            animate(element, scope.active, animationIn, animationOut);
+          }
+
+          return;
+        };
+
+        scope.show = function() {
+          if(!scope.active){
+            scope.active = true;
+            animate(element, scope.active, animationIn, animationOut);
+          }
+
+          return;
+        };
+
+        scope.toggle = function() {
+          scope.active = !scope.active;
+          animate(element, scope.active, animationIn, animationOut);
+
+          return;
+        };
+
+        element.on('click', function(e) {
+          // Check sizing
+          var srcEl = e.target;
+
+          if (!matchMedia(globalQueries.medium).matches && srcEl.href && srcEl.href.length > 0) {
+            // Hide element if it can't match at least medium
+            scope.hide();
+            animate(element, scope.active, animationIn, animationOut);
+          }
+        });
+      }
+    }
+  }
+
 })();
 
 (function() {
