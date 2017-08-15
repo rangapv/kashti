@@ -8898,6 +8898,31 @@ h1, h2, h3 {
   box-shadow: 0 2px 0 rgba(30, 30, 30, 0.25);
   transition: all 0.3s ease-in-out; }
 
+.button,
+button {
+  border-radius: 2rem;
+  padding: 0.25rem 2rem;
+  line-height: 2;
+  background: #F4F5F7;
+  color: #37B0E7;
+  border: none;
+  box-shadow: none;
+  font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
+  font-weight: bold;
+  letter-spacing: 0.025em; }
+
+.icon-green {
+  color: #70AE29; }
+
+.icon-blue {
+  color: #37B0E7; }
+
+.icon-red {
+  color: #D10015; }
+
+.icon-orange {
+  color: #f4a117; }
+
 #primary {
   background: #37B0E7 url("../images/topo-pattern-white.png") repeat 20px 0;
   background-size: 376px auto;
@@ -9114,6 +9139,42 @@ h1, h2, h3 {
     #header .icon-right a:hover small .icon {
       color: #2D3047; }
 
+#switcher {
+  padding: 0 0 0.825rem;
+  margin-left: 43px;
+  margin-top: -1px;
+  border-radius: 5px; }
+  #switcher select {
+    margin: 0.25rem 7%;
+    width: 86%;
+    color: #2D3047;
+    font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
+    font-weight: bold;
+    letter-spacing: 0.025em; }
+  #switcher small,
+  #switcher a {
+    padding: 0.25rem 1rem;
+    line-height: 1.4; }
+  #switcher a {
+    color: #2D3047;
+    border-radius: 3px;
+    font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
+    font-weight: bold;
+    letter-spacing: 0.025em;
+    transition: all 0.3s ease-in-out; }
+    #switcher a:hover {
+      background-color: #F4F5F7;
+      color: #37B0E7; }
+  #switcher small {
+    text-transform: uppercase;
+    letter-spacing: 0.125em;
+    display: inline-block;
+    padding-top: 1rem; }
+  #switcher ul, #switcher li {
+    padding: 0;
+    margin: 0;
+    border: none !important; }
+
 footer {
   border-top: 2px solid #E1E6EE;
   margin-top: 3.5rem;
@@ -9133,6 +9194,15 @@ footer {
         color: #37B0E7;
         padding: 0.75rem 0.5rem 1rem 0.5rem; }
 
+.project-header {
+  border: 1px solid #E1E6EE; }
+  .project-header aside {
+    color: #37B0E7;
+    background: #E1E6EE;
+    font-size: 0.925rem;
+    display: block;
+    border: 1px solid #E1E6EE; }
+
 .build-list {
   margin-top: 2rem; }
   .build-list .build-item {
@@ -9143,23 +9213,43 @@ footer {
       text-align: left;
       padding: 0.25rem 1.25rem;
       margin: 0 0 0.25rem 0;
-      border-radius: 2px;
+      border-radius: 4px;
       transition: all 0.3s ease-in-out; }
       .build-list .build-item a div {
         font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
-        display: inline-block;
-        padding-right: 0.5rem;
-        font-size: 0.925rem;
-        letter-spacing: -0.025em; }
+        font-size: 0.825rem;
+        line-height: 2.25;
+        letter-spacing: -0.05em;
+        color: #73a2ab;
+        transition: all 0.3s ease-in-out; }
       .build-list .build-item a .act-state {
-        padding-top: 1rem; }
+        padding-top: 0.1rem;
+        position: relative;
+        line-height: 1.725; }
         .build-list .build-item a .act-state .icon {
-          font-size: 1.5rem; }
-        .build-list .build-item a .act-state .icon-green {
-          color: #70AE29; }
+          font-size: 1.5rem;
+          top: -0.25rem;
+          position: absolute; }
       .build-list .build-item a .act-author .avatar {
         max-width: 30px;
         border-radius: 0.25rem; }
+      .build-list .build-item a:after {
+        content: "Details >";
+        color: #37B0E7;
+        font-size: 0.75rem;
+        position: absolute;
+        right: 1rem;
+        opacity: 0.5;
+        width: 1rem;
+        text-align: right;
+        background: red;
+        overflow: hidden;
+        transition: all 0.3s ease-in-out; }
       .build-list .build-item a:hover {
         background: white;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
+        .build-list .build-item a:hover:after {
+          opacity: 1;
+          width: auto; }
+        .build-list .build-item a:hover div {
+          color: #2D3047; }
