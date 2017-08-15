@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en" ng-app="application">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Acid UI</title>
+
+  <link href="./assets/css/app.css" rel="stylesheet" type="text/css">
+
+  <script src="./assets/js/foundation.js"></script>
+  <script src="./assets/js/templates.js"></script>
+  <script src="./assets/js/routes.js"></script>
+  <script src="./assets/js/app.js"></script>
+</head>
+
+<body>
+
+  <div class="grid-frame">
+
+    <div position="left" id="primary" class="vertical shrink grid-block">
+      <a href="/" class="logo"><img src="assets/images/acid-logo.png" /></a>
+
+      <a href="https://github.com/deis/acid/tree/master/docs"><i class="icon ion-document-text right"></i></a>
+      <a href="https://github.com/deis/acid/issues"><i class="icon ion-help right"></i></a>
+    </div>
+
+    <!-- left sidebar -->
+    <div zf-panel position="left" id="sidebar" class="medium-grid-block collapse medium-2 large-2 vertical">
+      <div class="grid-content collapse shrink">
+        <ul class="menu-bar primary">
+          <li id="organization">
+            <a href="/#!/">
+              <h2>Draft</h2>
+              <h3>Azure Container Service</h3>
+
+              <i class="icon ion-chevron-down right"></i>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="grid-content">
+        <nav>
+          <ul>
+            <li><a href="/#!/build">Builds</a></li>
+            <li><a href="/#!/project">Pipelines</a></li>
+            <li><a href="/#!/project">Configuration</a></li>
+            <li><a href="/#!/project">Speed</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="grid-content collapse shrink avatar-section">
+        <nav>
+          <ul>
+            <li><a href="https://github.com/deis/acid/tree/master/docs" target="_blank">
+              Docs
+            </a></li>
+            <li><a href="https://github.com/deis/acid/issues/" target="_blank">
+              Support
+            </a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <!-- topbar #header -->
+    <div class="grid-block collapse vertical">
+      <div id="header" class="shrink collapse grid-content">
+        <div class="menu-group primary">
+          <div class="menu-group-left">
+            <ul class="menu-bar">
+              <li><a href="/#!/project">Draft</a></li>
+              <li><a href="/#!/project">Master</a></li>
+              <li><a href="/#!/build">Build #23</a></li>
+            </ul>
+          </div>
+          <div class="menu-group-right">
+            <ul class="icon-right menu-bar">
+              <li>
+                <a href="">
+                  <i class="icon ion-person rounded right"></i>
+                  <small>
+                    <i class="icon ion-chevron-down right"></i>
+                  </small>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="grid-block">
+        <div class="grid-block small-12 medium-12 vertical">
+          <div class="grid-content">
+
+            <div ui-view class="grid-block grid-content small-12" id="main"></div>
+
+            <footer class="collapse shrink">
+              <ul class="inline-list">
+                <li><span><a href="https://github.com/deis/acid" target="_blank">ACID</a> is licensed under the The MIT License.</span></li>
+                <li><a href="https://github.com/deis/acid/releases" target="_blank">Changelog</a></li>
+                <li><a href="https://github.com/deis/acid/tree/master/docs" target="_blank">Documentation</a></li>
+                <li><a href="https://github.com/deis/acid/" target="_blank">Github</a></li>
+              </ul>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
