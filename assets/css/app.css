@@ -8907,6 +8907,7 @@ button {
   color: #37B0E7;
   border: none;
   box-shadow: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
   font-weight: bold;
   letter-spacing: 0.025em; }
