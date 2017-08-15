@@ -51,9 +51,9 @@
               </select>
               <small>Project</small>
               <ul class="block-list" id="switcher-project">
-                <li><a href="/#!/project">Acid</a></li>
-                <li><a href="/#!/project">Draft</a></li>
-                <li><a href="/#!/project">Helm</a></li>
+                <li><a href="../acid-ui/#!/project">Acid</a></li>
+                <li><a href="../acid-ui/#!/project">Draft</a></li>
+                <li><a href="../acid-ui/#!/project">Helm</a></li>
               </ul>
             </zf-popup>
           </li>
@@ -62,10 +62,10 @@
       <div class="grid-content">
         <nav>
           <ul>
-            <li><a href="/#!/project">Builds</a></li>
-            <li><a href="/#!/project">Pipelines</a></li>
-            <li><a href="/#!/project">Configuration</a></li>
-            <li><a href="/#!/project">Speed</a></li>
+            <li><a href="../acid-ui/#!/project">Builds</a></li>
+            <li><a href="../acid-ui/#!/project">Pipelines</a></li>
+            <li><a href="../acid-ui/#!/project">Configuration</a></li>
+            <li><a href="../acid-ui/#!/project">Speed</a></li>
           </ul>
         </nav>
       </div>
@@ -91,11 +91,11 @@
             <ul class="menu-bar">
               <li 
                 ng-hide="$state.current.name === 'home'">
-                <a href="/#!/project">Draft</a></li>
+                <a href="../acid-ui/#!/project">Draft</a></li>
               <li 
                 ng-class="{ 'active': $state.current.name === 'project'}" 
                 ng-hide="$state.current.name === 'home'">
-                <a href="/#!/project">Master</a></li>
+                <a href="../acid-ui/#!/project">Master</a></li>
               <li ng-show="$state.current.name === 'build'"><a href="/#!/build">Build #23</a></li>
             </ul>
           </div>
