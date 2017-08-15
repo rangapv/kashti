@@ -9176,6 +9176,17 @@ button {
     margin: 0;
     border: none !important; }
 
+#account-menu ul {
+  margin: 0;
+  padding: 0; }
+  #account-menu ul li small,
+  #account-menu ul li strong {
+    display: block;
+    padding: 0.5rem 1rem; }
+  #account-menu ul li small {
+    text-transform: uppercase;
+    letter-spacing: 0.125em; }
+
 footer {
   border-top: 2px solid #E1E6EE;
   margin-top: 3.5rem;
