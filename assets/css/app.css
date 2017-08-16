@@ -8924,6 +8924,29 @@ button {
 .icon-orange {
   color: #f4a117; }
 
+#basicModal {
+  -ms-flex-align: right;
+      align-items: right;
+  -ms-flex-pack: right;
+  justify-content: flex-end; }
+  #basicModal aside.modal {
+    max-width: 940px;
+    background: #FBFBFD;
+    max-height: 100vh;
+    overflow-y: scroll; }
+    #basicModal aside.modal .close-button {
+      top: 1.125rem;
+      right: 1.125rem;
+      font-size: 3em; }
+    #basicModal aside.modal h3 {
+      margin: 0.5rem 1.25rem 1rem;
+      font-size: 1.25rem;
+      color: #2D3047; }
+    #basicModal aside.modal pre {
+      background-color: #F4F5F7;
+      margin: 1.25rem 1.25rem;
+      padding: 0.5rem; }
+
 #primary {
   background: #37B0E7 url("../images/topo-pattern-white.png") repeat 20px 0;
   background-size: 376px auto;
@@ -9191,7 +9214,13 @@ footer {
   border-top: 2px solid #E1E6EE;
   margin-top: 3.5rem;
   opacity: 1;
+  position: relative;
   transition: all 0.3s ease-in-out; }
+  footer img {
+    max-height: 24px;
+    position: absolute;
+    top: 1.25rem;
+    right: 2rem; }
   footer ul {
     margin: 0 0.75rem; }
     footer ul li {
@@ -9251,11 +9280,12 @@ footer {
         font-size: 0.75rem;
         position: absolute;
         right: 1rem;
-        opacity: 0.5;
-        width: 1rem;
+        top: 0.667rem;
+        opacity: 0;
         text-align: right;
-        background: red;
-        overflow: hidden;
+        font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
+        font-weight: bold;
+        letter-spacing: 0.025em;
         transition: all 0.3s ease-in-out; }
       .build-list .build-item a:hover {
         background: white;
