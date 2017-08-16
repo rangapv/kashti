@@ -8912,6 +8912,10 @@ button {
   font-weight: bold;
   letter-spacing: 0.025em; }
 
+code,
+pre {
+  font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace; }
+
 .icon-green {
   color: #70AE29; }
 
@@ -9082,9 +9086,31 @@ button {
         font-weight: bold;
         letter-spacing: 0.025em;
         transition: all 0.3s ease-in-out; }
-        #sidebar nav ul li a.active, #sidebar nav ul li a:hover {
-          background-color: #E1E6EE;
-          color: #342E37; }
+      #sidebar nav ul li.active a,
+      #sidebar nav ul li:hover a {
+        background-color: #E1E6EE;
+        color: #342E37; }
+      #sidebar nav ul li.active ul {
+        display: block; }
+        #sidebar nav ul li.active ul li a {
+          background: transparent;
+          color: #7ba7b0; }
+        #sidebar nav ul li.active ul li.active a,
+        #sidebar nav ul li.active ul li:hover a {
+          background-color: white;
+          color: #2D3047; }
+      #sidebar nav ul li ul {
+        margin: -0.25rem 0.5rem 0;
+        padding: 0;
+        display: none; }
+        #sidebar nav ul li ul li a {
+          font-size: 0.825rem;
+          font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
+          font-weight: normal;
+          line-height: 1.636;
+          display: inline-block;
+          border-radius: 2rem;
+          padding: 0 0.725rem; }
       #sidebar nav ul li:first-child {
         padding-top: 1rem; }
       #sidebar nav ul li:last-child {
@@ -9265,12 +9291,27 @@ footer {
         transition: all 0.3s ease-in-out; }
       .build-list .build-item a .act-state {
         padding-top: 0.1rem;
+        padding-left: 0.1rem;
         position: relative;
         line-height: 1.725; }
         .build-list .build-item a .act-state .icon {
           font-size: 1.5rem;
-          top: -0.25rem;
-          position: absolute; }
+          line-height: 0.5;
+          top: 0.25rem;
+          background: #efeff7;
+          position: absolute;
+          z-index: 900;
+          transition: all 0.3s ease-in-out; }
+        .build-list .build-item a .act-state:after {
+          width: 2px;
+          height: 40px;
+          left: 0.625rem;
+          top: -4px;
+          background: #E1E6EE;
+          position: absolute;
+          display: block;
+          content: " ";
+          z-index: 500; }
       .build-list .build-item a .act-author .avatar {
         max-width: 30px;
         border-radius: 0.25rem; }
@@ -9279,7 +9320,7 @@ footer {
         color: #37B0E7;
         font-size: 0.75rem;
         position: absolute;
-        right: 1rem;
+        right: 1.5rem;
         top: 0.667rem;
         opacity: 0;
         text-align: right;
@@ -9287,11 +9328,21 @@ footer {
         font-weight: bold;
         letter-spacing: 0.025em;
         transition: all 0.3s ease-in-out; }
-      .build-list .build-item a:hover {
-        background: white;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
-        .build-list .build-item a:hover:after {
-          opacity: 1;
-          width: auto; }
-        .build-list .build-item a:hover div {
-          color: #2D3047; }
+    .build-list .build-item:hover a,
+    .build-list .build-item:first-of-type a {
+      background: white;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
+      .build-list .build-item:hover a:after,
+      .build-list .build-item:first-of-type a:after {
+        opacity: 1;
+        width: auto;
+        right: 0.925rem; }
+      .build-list .build-item:hover a .act-state .icon,
+      .build-list .build-item:first-of-type a .act-state .icon {
+        background: white; }
+      .build-list .build-item:hover a div,
+      .build-list .build-item:first-of-type a div {
+        color: #2D3047; }
+    .build-list .build-item:first-of-type .act-state:after {
+      top: 10px;
+      height: 30px; }
