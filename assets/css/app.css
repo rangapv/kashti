@@ -8890,14 +8890,6 @@ h1, h2, h3 {
   top: 200vh;
   opacity: 0; }
 
-#projects a.project {
-  background: #FBFBFD;
-  margin: 0 2% 2rem 2%;
-  border: 2px solid #F4F5F7;
-  border-radius: 4px;
-  box-shadow: 0 2px 0 rgba(30, 30, 30, 0.25);
-  transition: all 0.3s ease-in-out; }
-
 .button,
 button {
   border-radius: 2rem;
@@ -9104,7 +9096,7 @@ pre {
         padding: 0;
         display: none; }
         #sidebar nav ul li ul li a {
-          font-size: 0.825rem;
+          font-size: 0.925rem;
           font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
           font-weight: normal;
           line-height: 1.636;
@@ -9260,6 +9252,91 @@ footer {
       footer ul li a {
         color: #37B0E7;
         padding: 0.75rem 0.5rem 1rem 0.5rem; }
+
+.template-home {
+  min-height: 100vh;
+  margin-bottom: -80px; }
+  .template-home .add-project {
+    display: inline-block;
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    border: 1px dashed #37B0E7;
+    margin: 0 1rem 2.75rem;
+    background-color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+    color: #93B7BE;
+    line-height: 1.2;
+    position: relative;
+    font-weight: bold;
+    transition: all 0.3s ease-in-out;
+    border-radius: 0.25rem 0.25rem 0.25rem 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.125em; }
+    .template-home .add-project .icon {
+      color: #37B0E7;
+      font-size: 1.25rem;
+      margin-right: 0.5rem;
+      position: absolute;
+      top: 0.425rem;
+      left: 0.75rem; }
+    .template-home .add-project:hover {
+      background-color: rgba(255, 255, 255, 0.825);
+      border-color: #1998d2;
+      color: #2D3047; }
+  .template-home .project {
+    position: relative;
+    overflow: hidden;
+    height: 150px;
+    background: white;
+    margin: 0 2% 2rem 2%;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease-in-out; }
+    .template-home .project h2 {
+      margin: 1.5rem 0 0.75rem 56px;
+      font-size: 1.5rem; }
+    .template-home .project h4 {
+      text-transform: uppercase;
+      letter-spacing: 0.125em;
+      font-size: 0.825rem;
+      letter-spacing: 0.05em;
+      color: #b0bdd2;
+      margin: 0rem 0 1rem 56px; }
+    .template-home .project .status img,
+    .template-home .project .status .icon {
+      font-size: 2rem;
+      text-align: left;
+      width: 36px;
+      height: 36px;
+      display: inline-block;
+      position: absolute;
+      top: 1.5rem;
+      left: 1.5rem;
+      z-index: 500;
+      display: none;
+      background: white;
+      border-radius: 50%; }
+    .template-home .project .status img {
+      margin-left: -2px; }
+    .template-home .project .status:after {
+      width: 2px;
+      height: 115px;
+      background-color: #E1E6EE;
+      display: block;
+      content: " ";
+      position: absolute;
+      left: 37px;
+      top: 2rem;
+      z-index: 300; }
+    .template-home .project.project-success .icon.status-success {
+      display: block;
+      color: #70AE29; }
+    .template-home .project.project-fail .icon.status-fail {
+      display: block;
+      color: #D10015; }
+    .template-home .project.project-active img.status-active {
+      display: block;
+      color: #37B0E7; }
 
 .project-header {
   border: 1px solid #E1E6EE; }
