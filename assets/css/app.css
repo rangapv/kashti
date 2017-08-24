@@ -8871,6 +8871,9 @@ h1, h2, h3 {
   font-weight: bold;
   letter-spacing: 0.025em; }
 
+.content-wrap {
+  padding: 0; }
+
 #main {
   padding-top: 1.5rem;
   min-height: 90vh;
@@ -8899,16 +8902,55 @@ button {
   line-height: 2;
   background: #F4F5F7;
   color: #37B0E7;
-  border: none;
+  border: 1px solid transparent;
   box-shadow: none;
+  margin: 1rem 0;
+  transition: all 0.3s ease-in-out;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
   font-weight: bold;
   letter-spacing: 0.025em; }
+  .button .icon,
+  button .icon {
+    font-size: 0.75rem;
+    margin: 0 0.5rem; }
+    .button .icon.right,
+    button .icon.right {
+      margin-right: -0.5rem;
+      margin-left: 0.5; }
+    .button .icon.left,
+    button .icon.left {
+      margin-left: -0.5rem;
+      margin-right: 0.5rem; }
+  .button:hover,
+  button:hover {
+    background: white;
+    color: #1998d2;
+    border-color: rgba(55, 176, 231, 0.25);
+    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.2); }
+
+::-moz-selection {
+  color: #2541B2;
+  background: #d6effa; }
+
+::selection {
+  color: #2541B2;
+  background: #d6effa; }
 
 code,
 pre {
-  font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace; }
+  font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+  font-size: 0.825rem;
+  line-height: 1.636;
+  color: #2D3047; }
+  code ::-moz-selection,
+  pre ::-moz-selection {
+    color: white;
+    background: #37B0E7; }
+  code ::selection,
+  pre ::selection {
+    color: white;
+    background: #37B0E7; }
 
 .icon-green {
   color: #70AE29; }
@@ -9232,7 +9274,7 @@ pre {
 
 footer {
   border-top: 2px solid #E1E6EE;
-  margin-top: 3.5rem;
+  margin-top: 1.5rem;
   opacity: 1;
   position: relative;
   transition: all 0.3s ease-in-out; }
@@ -9258,6 +9300,9 @@ footer {
 .template-home {
   min-height: 100vh;
   margin-bottom: -80px; }
+  @media only screen and (min-width: 90em) {
+    .template-home .grid-container {
+      max-width: 80rem !important; } }
   .template-home .add-project {
     display: inline-block;
     padding: 0.75rem 1rem 0.75rem 2.75rem;
@@ -9401,14 +9446,138 @@ footer {
       display: block;
       color: #37B0E7; }
 
-.project-header {
-  border: 1px solid #E1E6EE; }
-  .project-header aside {
-    color: #37B0E7;
-    background: #E1E6EE;
-    font-size: 0.925rem;
+.template-project {
+  position: relative;
+  padding: 1.5rem 1rem 0;
+  margin: 0; }
+  @media only screen and (min-width: 90em) {
+    .template-project .grid-container {
+      max-width: 60rem !important; } }
+  .template-project:after {
+    background: linear-gradient(5deg, #eaebf2 0%, #e9ecf2 100%);
     display: block;
-    border: 1px solid #E1E6EE; }
+    content: " ";
+    top: 0;
+    left: -2rem;
+    width: 110%;
+    height: 252px;
+    position: absolute;
+    z-index: 100; }
+
+.project-header-wrap {
+  position: relative;
+  z-index: 200;
+  padding-bottom: 2rem; }
+
+.project-header {
+  background-color: #FBFBFD;
+  border: 1px solid #E1E6EE;
+  padding: 1rem 1.75rem;
+  min-height: 145px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+  border-radius: 0.2rem 3px 0.2rem 3px; }
+  .project-header h1 {
+    font-size: 2rem;
+    color: #2D3047;
+    margin-bottom: 1.25rem; }
+  .project-header ul {
+    list-style: none;
+    margin: 0; }
+    .project-header ul li {
+      font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+      font-size: 0.75rem;
+      color: #93B7BE; }
+
+.project-status-bar {
+  color: #37B0E7;
+  background: #F4F5F7;
+  font-size: 0.925rem;
+  display: block;
+  border: 1px solid #E1E6EE;
+  margin-top: -1px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); }
+  .project-status-bar img {
+    max-width: 3rem;
+    margin-top: -3px; }
+  .project-status-bar span {
+    position: relative;
+    display: inline-block; }
+    .project-status-bar span:after {
+      background-color: #F4F5F7;
+      border-top: 1px solid #E1E6EE;
+      height: 4px;
+      width: 2000px;
+      display: block;
+      content: " ";
+      position: absolute;
+      left: 112.5%;
+      top: 0.45rem;
+      border-radius: 1rem 1rem 1rem 1rem; }
+
+.project-filters {
+  padding-top: 1.75rem; }
+  .project-filters select {
+    margin-left: 1rem;
+    margin-right: 5rem;
+    border-radius: 0.75rem;
+    border-color: #E1E6EE;
+    background-color: #F4F5F7;
+    height: 2.5rem;
+    line-height: 1.5; }
+    .project-filters select option {
+      font-size: 0.825rem; }
+  .project-filters ul {
+    padding: 0;
+    height: auto;
+    margin: 0 3rem;
+    display: inline-block; }
+    .project-filters ul:last-child {
+      float: right;
+      margin-right: 0;
+      position: absolute;
+      right: 0; }
+    .project-filters ul li {
+      font-size: 0.825rem;
+      margin: 0 1rem;
+      color: #93B7BE;
+      margin: 0 -2px;
+      padding: 0 0.5rem;
+      display: inline-block;
+      background-color: #F4F5F7;
+      line-height: 3;
+      transition: all 0.3s ease-in-out; }
+      .project-filters ul li:first-child {
+        border-radius: 40px 0 0 40px;
+        padding-left: 1rem; }
+      .project-filters ul li:last-child {
+        border-radius: 0 40px 40px 0;
+        padding-right: 1rem; }
+      .project-filters ul li.active {
+        color: #3c405e; }
+      .project-filters ul li:hover {
+        background: #eaecef; }
+
+.project-config-summary strong {
+  color: #2D3047;
+  display: block;
+  margin-bottom: -1.5rem; }
+
+.project-config-summary pre {
+  padding: 1rem 0 0 2rem;
+  font-size: 0.75rem;
+  line-height: 1.425;
+  color: #93B7BE; }
+  .project-config-summary pre:hover {
+    color: #2D3047; }
+
+.project-config-summary button {
+  position: absolute;
+  bottom: 0.12rem;
+  min-width: 10rem;
+  margin-left: 1.25rem;
+  left: 75%; }
 
 .build-list {
   margin-top: 2rem; }
