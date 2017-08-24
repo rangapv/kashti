@@ -8875,6 +8875,8 @@ h1, h2, h3 {
   padding-top: 1.5rem;
   min-height: 90vh;
   transition: all 0.25s ease-in-out; }
+  #main .grid-container {
+    max-width: 65rem; }
   #main.ng-animate {
     min-height: 100vh; }
   #main.ng-enter {
@@ -9288,7 +9290,7 @@ footer {
     position: relative;
     height: 170px;
     background: white;
-    margin: 1rem 3.5% 1rem 3.5%;
+    margin: 1rem 0.925rem;
     border: 2px solid transparent;
     border-radius: 4px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
@@ -9299,7 +9301,7 @@ footer {
       width: 100%;
       height: 170px; }
     .template-home .project h2 {
-      margin: 1.25rem 0 0 76px;
+      margin: 1.25rem 0 0 4rem;
       font-size: 1.5rem;
       color: #342E37;
       transition: all 0.3s ease-in-out; }
@@ -9309,7 +9311,7 @@ footer {
       font-size: 0.667rem;
       letter-spacing: 0.05em;
       color: #b0bdd2;
-      margin: 0 0 1rem 76px; }
+      margin: 0 0 1rem 4rem; }
     .template-home .project:hover {
       background: white;
       border-color: rgba(55, 176, 231, 0.25);
@@ -9324,8 +9326,8 @@ footer {
       height: 36px;
       display: inline-block;
       position: absolute;
-      top: 1.25rem;
-      left: 1.5rem;
+      top: 1.125rem;
+      left: 1.25rem;
       z-index: 500;
       display: none;
       background: white;
@@ -9341,12 +9343,12 @@ footer {
       display: block;
       content: " ";
       position: absolute;
-      left: 37px;
+      left: 2rem;
       top: 2rem;
       z-index: 300; }
     .template-home .project .activity ul {
       list-style: none;
-      margin: 10px 0 0 76px; }
+      margin: 10px 0 0 4rem; }
       .template-home .project .activity ul li {
         font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
         color: #93B7BE;
@@ -9364,7 +9366,7 @@ footer {
           border: 2px solid white;
           position: absolute;
           z-index: 650;
-          left: -44px;
+          left: -2.35rem;
           top: 3px; }
         .template-home .project .activity ul li.error {
           color: #D10015; }
