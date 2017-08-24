@@ -9136,7 +9136,7 @@ pre {
           background-color: white;
           color: #2D3047; }
       #sidebar nav ul li ul {
-        margin: -0.25rem 0.5rem 0;
+        margin: -0.75rem 1rem 0;
         padding: 0;
         display: none; }
         #sidebar nav ul li ul li a {
@@ -9517,7 +9517,16 @@ footer {
       border-radius: 1rem 1rem 1rem 1rem; }
 
 .project-filters {
-  padding-top: 1.75rem; }
+  padding-top: 1.75rem;
+  position: relative; }
+  .project-filters:after {
+    display: block;
+    content: " ";
+    height: 1px;
+    width: 100%;
+    background: #E1E6EE;
+    position: absolute;
+    top: 2.95rem; }
   .project-filters select {
     margin-left: 1rem;
     margin-right: 5rem;
@@ -9525,14 +9534,16 @@ footer {
     border-color: #E1E6EE;
     background-color: #F4F5F7;
     height: 2.5rem;
-    line-height: 1.5; }
+    line-height: 1.5;
+    z-index: 750; }
     .project-filters select option {
       font-size: 0.825rem; }
   .project-filters ul {
     padding: 0;
     height: auto;
     margin: 0 3rem;
-    display: inline-block; }
+    display: inline-block;
+    z-index: 750; }
     .project-filters ul:last-child {
       float: right;
       margin-right: 0;
