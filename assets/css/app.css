@@ -8876,7 +8876,8 @@ h1, h2, h3 {
 
 #main {
   padding-top: 1.5rem;
-  min-height: 90vh;
+  min-height: 88vh;
+  overflow-x: hidden;
   transition: all 0.25s ease-in-out; }
   #main .grid-container {
     max-width: 65rem; }
@@ -9109,13 +9110,15 @@ pre {
     margin: 0 0 -10px;
     padding: 0; }
     #sidebar nav ul li {
-      margin: 0; }
+      margin: 0;
+      padding-top: 0.425rem;
+      transition: all 0.3s ease-in-out; }
       #sidebar nav ul li a {
         display: block;
         padding: 0.75rem 1rem 0.75rem 1rem;
         border-radius: 3px;
         margin: 0 5%;
-        line-height: 1;
+        line-height: 0.8;
         position: relative;
         color: #7ba7b0;
         font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
@@ -9124,19 +9127,24 @@ pre {
         transition: all 0.3s ease-in-out; }
       #sidebar nav ul li.active a,
       #sidebar nav ul li:hover a {
-        background-color: #E1E6EE;
+        background: linear-gradient(95deg, #E1E6EE 0%, #e8ebf2 100%);
         color: #342E37; }
-      #sidebar nav ul li.active ul {
-        display: block; }
-        #sidebar nav ul li.active ul li a {
-          background: transparent;
-          color: #7ba7b0; }
-        #sidebar nav ul li.active ul li.active a,
-        #sidebar nav ul li.active ul li:hover a {
-          background-color: white;
-          color: #2D3047; }
+      #sidebar nav ul li.active {
+        background: linear-gradient(185deg, #F0F1F6 0%, #f1f3f7 100%); }
+        #sidebar nav ul li.active a {
+          color: #342E37; }
+        #sidebar nav ul li.active ul {
+          display: block; }
+          #sidebar nav ul li.active ul li a {
+            background: transparent;
+            color: #7ba7b0; }
+          #sidebar nav ul li.active ul li.active, #sidebar nav ul li.active ul li:hover {
+            background: transparent; }
+            #sidebar nav ul li.active ul li.active a, #sidebar nav ul li.active ul li:hover a {
+              background-color: white;
+              color: #2D3047; }
       #sidebar nav ul li ul {
-        margin: -0.75rem 1rem 0;
+        margin: -0.5rem 0 0 0.425rem;
         padding: 0;
         display: none; }
         #sidebar nav ul li ul li a {
@@ -9146,7 +9154,7 @@ pre {
           line-height: 1.636;
           display: inline-block;
           border-radius: 2rem;
-          padding: 0 0.725rem; }
+          padding: 0 0.65rem; }
       #sidebar nav ul li:first-child {
         padding-top: 1rem; }
       #sidebar nav ul li:last-child {
@@ -9467,13 +9475,14 @@ footer {
 .project-header-wrap {
   position: relative;
   z-index: 200;
-  padding-bottom: 2rem; }
+  padding-bottom: 2rem;
+  padding-left: 2rem; }
 
 .project-header {
+  min-height: 145px;
   background-color: #FBFBFD;
   border: 1px solid #E1E6EE;
-  padding: 1rem 1.75rem;
-  min-height: 145px;
+  padding: 1.25rem 1.75rem;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
   border-radius: 0.2rem 3px 0.2rem 3px; }
   .project-header h1 {
@@ -9517,8 +9526,10 @@ footer {
       border-radius: 1rem 1rem 1rem 1rem; }
 
 .project-filters {
-  padding-top: 1.75rem;
-  position: relative; }
+  padding-top: 2.25rem;
+  position: relative;
+  overflow-x: hidden;
+  margin-right: 1rem; }
   .project-filters:after {
     display: block;
     content: " ";
@@ -9526,7 +9537,7 @@ footer {
     width: 100%;
     background: #E1E6EE;
     position: absolute;
-    top: 2.95rem; }
+    top: 3.425rem; }
   .project-filters select {
     margin-left: 1rem;
     margin-right: 5rem;
@@ -9541,8 +9552,7 @@ footer {
   .project-filters ul {
     padding: 0;
     height: auto;
-    margin: 0 3rem;
-    display: inline-block;
+    margin: 0 2rem;
     z-index: 750; }
     .project-filters ul:last-child {
       float: right;
@@ -9591,7 +9601,8 @@ footer {
   left: 75%; }
 
 .build-list {
-  margin-top: 2rem; }
+  margin-top: 1rem;
+  margin-right: 1rem; }
   .build-list .build-item {
     border: none; }
     .build-list .build-item:first-child {
@@ -9666,3 +9677,21 @@ footer {
     .build-list .build-item:first-of-type .act-state:after {
       top: 10px;
       height: 30px; }
+
+.template-build {
+  position: relative;
+  padding: 1.5rem 1rem 0;
+  margin: 0; }
+  @media only screen and (min-width: 90em) {
+    .template-build .grid-container {
+      max-width: 60rem !important; } }
+  .template-build:after {
+    background: linear-gradient(5deg, #eaebf2 0%, #e9ecf2 100%);
+    display: block;
+    content: " ";
+    top: 0;
+    left: -2rem;
+    width: 110%;
+    height: 252px;
+    position: absolute;
+    z-index: 100; }
