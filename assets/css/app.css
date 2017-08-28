@@ -9612,6 +9612,7 @@ footer {
       padding: 0.25rem 1.25rem;
       margin: 0 0 0.25rem 0;
       border-radius: 4px;
+      overflow: hidden;
       transition: all 0.3s ease-in-out; }
       .build-list .build-item a div {
         font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
@@ -9687,31 +9688,231 @@ footer {
     @media only screen and (min-width: 90em) {
       .template-build .grid-container {
         max-width: 65rem !important; } }
-  .template-build:after {
-    background: linear-gradient(5deg, #eaebf2 0%, #e9ecf2 100%);
-    display: block;
-    content: " ";
-    top: 0;
-    left: -2rem;
-    width: 110%;
-    height: 200px;
-    position: absolute;
-    z-index: 100; }
+    .template-build .grid-container:after {
+      background: linear-gradient(5deg, #d8dbe8 0%, #e9ecf2 100%);
+      display: block;
+      content: " ";
+      top: 0;
+      left: -2rem;
+      width: 110%;
+      height: 150px;
+      position: absolute;
+      z-index: 100;
+      transition: all 0.3s ease-in-out; }
+    .template-build .grid-container .button {
+      position: absolute;
+      bottom: -1rem;
+      right: 1.75rem;
+      transition: none;
+      padding-left: 0.75rem;
+      padding-right: 1rem; }
+    .template-build .grid-container.active-chart:after {
+      height: 335px; }
+    .template-build .grid-container.active-chart .button {
+      position: absolute;
+      bottom: 0.5rem; }
 
 .build-header-wrap {
   position: relative;
   z-index: 200;
-  padding-bottom: 2rem;
+  padding-bottom: 0.825rem;
   padding-left: 2rem; }
 
 .build-header {
-  padding: 1.25rem 1.75rem; }
+  padding: 1.25rem 1.75rem;
+  position: relative; }
   .build-header h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
     color: #2D3047;
-    margin-bottom: 1.25rem; }
+    margin-bottom: 1.25rem;
+    position: relative; }
+    .build-header h1 small {
+      font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+      font-size: 0.667rem;
+      position: absolute;
+      left: -2.5rem;
+      top: 1.333rem;
+      color: #7ba7b0; }
+  .build-header .build-metadata {
+    font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+    font-size: 0.667rem;
+    color: #7ba7b0;
+    margin-top: -0.5rem;
+    padding-bottom: 2rem; }
   .build-header .build-chart {
-    background: white; }
+    height: 13.5rem;
+    position: relative; }
+    .build-header .build-chart:before, .build-header .build-chart:after {
+      display: inline-block;
+      width: 2px;
+      position: absolute;
+      height: 160px;
+      content: " ";
+      background: #F4F5F7;
+      top: -0.5rem;
+      bottom: 0;
+      z-index: -2;
+      left: 1rem; }
+    .build-header .build-chart:after {
+      left: auto;
+      right: 1rem; }
+    .build-header .build-chart .task {
+      position: absolute;
+      display: inline-block;
+      height: 1.5rem;
+      background: #37B0E7;
+      min-width: 2%;
+      z-index: 350;
+      overflow: visible;
+      padding: 0.2rem 0.5rem;
+      font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+      font-size: 0.667rem;
+      line-height: 1.636;
+      color: white;
+      border-radius: 2px 3px 2px 3px;
+      box-shadow: 0 1px 3px rgba(255, 255, 255, 0.5);
+      transition: all 0.3s ease-in-out; }
+      .build-header .build-chart .task:hover {
+        background: #2541B2; }
+      .build-header .build-chart .task .icon {
+        padding-left: 0.25rem; }
+      .build-header .build-chart .task a {
+        color: white; }
+      .build-header .build-chart .task span {
+        display: inline-block;
+        width: 100%;
+        overflow-x: hidden;
+        white-space: nowrap; }
+    .build-header .build-chart em {
+      display: inline-block;
+      width: 100%;
+      position: relative;
+      height: 2px;
+      margin-top: 0.7rem;
+      margin-bottom: 1rem;
+      content: " ";
+      background: #F4F5F7;
+      left: 0;
+      right: 0;
+      z-index: -2; }
+    .build-header .build-chart .task-0 {
+      top: 0;
+      width: 4%;
+      left: 0%; }
+    .build-header .build-chart .task-1 {
+      top: 0;
+      width: 15%;
+      left: 5%; }
+    .build-header .build-chart .task-2 {
+      left: 5%;
+      top: 2rem;
+      width: 70%; }
+    .build-header .build-chart .task-3 {
+      left: 0;
+      top: 4rem;
+      width: 25%;
+      left: 5%; }
+    .build-header .build-chart .task-4 {
+      left: 30%;
+      top: 6rem;
+      width: 15%; }
+    .build-header .build-chart .task-5 {
+      left: 70%;
+      top: 8rem;
+      width: 14%; }
+    .build-header .build-chart .task-6 {
+      left: 85%;
+      top: 8rem;
+      width: 15%; }
+
+ul.build-details {
+  list-style: none;
+  margin: 0.5rem 1.5rem 3rem; }
+  ul.build-details li,
+  ul.build-details .accordion-item {
+    background: white;
+    margin: 0 0 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-left: 5px solid #8ad03a;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.125);
+    border-radius: 4px 3px 4px 3px;
+    margin-left: 1rem;
+    color: #373b57; }
+    ul.build-details li code,
+    ul.build-details .accordion-item code {
+      border: none;
+      font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+      background: #E1E6EE;
+      color: #2D3047;
+      padding-left: 0.25rem;
+      padding-right: 0.25rem;
+      line-height: 2;
+      margin-left: 0.5rem;
+      margin-right: 0.5rem;
+      border-radius: 2px 3px 2px 3px; }
+      ul.build-details li code img,
+      ul.build-details .accordion-item code img {
+        border-radius: 50% 50% 50% 50%;
+        margin-left: -1rem;
+        margin-right: -0.5 rem; }
+    ul.build-details li.trigger,
+    ul.build-details .accordion-item.trigger {
+      border-left-color: transparent; }
+    ul.build-details li.trigger, ul.build-details li.result,
+    ul.build-details .accordion-item.trigger,
+    ul.build-details .accordion-item.result {
+      margin-left: 0; }
+    ul.build-details li ul,
+    ul.build-details li .accordion,
+    ul.build-details .accordion-item ul,
+    ul.build-details .accordion-item .accordion {
+      margin: 1rem 0 1rem 0.5rem; }
+  ul.build-details li.zf-accordion-wrap {
+    background: none;
+    box-shadow: none;
+    border-radius: 0 3px 0 3px;
+    margin: 0;
+    padding: 0;
+    border: none; }
+  ul.build-details .parent {
+    border-color: #daf0c0; }
+  ul.build-details pre {
+    background: #2D3047;
+    color: #FBFBFD;
+    padding: 0.5rem 1rem 0;
+    margin-bottom: 0.5rem;
+    border-radius: 4px 3px 4px 3px; }
+  ul.build-details small {
+    font-size: 0.825rem;
+    display: block;
+    line-height: 2;
+    margin-top: 0.825rem; }
+  ul.build-details .icon {
+    font-size: 1.5rem;
+    margin-right: 1rem; }
+  ul.build-details .ion-checkmark-circled {
+    color: #70AE29; }
+  ul.build-details .accordion {
+    border: none; }
+    ul.build-details .accordion .accordion-item .accordion-title {
+      background: transparent;
+      padding: 0;
+      line-height: 1.5; }
+    ul.build-details .accordion .accordion-item .accordion-content {
+      display: block;
+      padding: 1rem 0.25rem 0; }
+      ul.build-details .accordion .accordion-item .accordion-content .accordion {
+        margin: 0;
+        padding: 0; }
+        ul.build-details .accordion .accordion-item .accordion-content .accordion .accordion-item {
+          margin-left: 0;
+          background-color: #F4F5F7; }
+          ul.build-details .accordion .accordion-item .accordion-content .accordion .accordion-item .accordion-content {
+            display: none; }
+          ul.build-details .accordion .accordion-item .accordion-content .accordion .accordion-item.is-active .accordion-content {
+            display: block; }
 
 .gantt {
   line-height: normal; }
