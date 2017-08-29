@@ -8858,6 +8858,31 @@ blockquote p {
   font-weight: 400;
   font-style: normal; }
 
+.build-status {
+  position: absolute;
+  right: 1.5rem;
+  line-height: 1;
+  top: 1rem;
+  background: white;
+  text-align: center;
+  min-width: 10.5rem;
+  padding: 0.75rem 3rem 0.5rem;
+  font-weight: bold;
+  border-radius: 0.35rem 0.35rem 0.35rem 0.35rem;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.125); }
+  .build-status .icon,
+  .build-status img {
+    font-size: 1.5rem;
+    float: left;
+    margin: -0.3rem 1rem 0 -0.25rem;
+    max-width: 1.5rem; }
+  .build-status.build-success {
+    color: #70AE29; }
+  .build-status.build-failed {
+    color: #D10015; }
+  .build-status.build-active {
+    color: #37B0E7; }
+
 body {
   background: url("../images/topo-pattern-white.png") repeat 20px 0, linear-gradient(185deg, #F0F1F6 0%, #e9ecf2 100%);
   background-size: 376px auto, auto auto;
@@ -9483,6 +9508,7 @@ footer {
   background-color: #FBFBFD;
   border: 1px solid #E1E6EE;
   padding: 1.25rem 1.75rem;
+  position: relative;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
   border-radius: 0.2rem 3px 0.2rem 3px; }
   .project-header h1 {
@@ -9496,6 +9522,10 @@ footer {
       font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
       font-size: 0.75rem;
       color: #93B7BE; }
+  .project-header .build-status {
+    left: auto;
+    right: 2rem;
+    top: 2rem; }
 
 .project-status-bar {
   color: #37B0E7;
@@ -9725,6 +9755,7 @@ footer {
     font-size: 1.75rem;
     color: #2D3047;
     margin-bottom: 1.25rem;
+    margin: -0.25em 0 1em;
     position: relative; }
     .build-header h1 small {
       font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
