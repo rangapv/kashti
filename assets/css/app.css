@@ -9509,6 +9509,7 @@ footer {
   border: 1px solid #E1E6EE;
   padding: 1.25rem 1.75rem;
   position: relative;
+  z-index: 500;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
   border-radius: 0.2rem 3px 0.2rem 3px; }
   .project-header h1 {
@@ -9536,6 +9537,8 @@ footer {
   margin-top: -1px;
   margin-bottom: 1rem;
   overflow: hidden;
+  position: relative;
+  z-index: 1100;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); }
   .project-status-bar img {
     max-width: 3rem;
@@ -9888,12 +9891,16 @@ ul.build-details {
         border-radius: 50% 50% 50% 50%;
         margin-left: -1rem;
         margin-right: -0.5 rem; }
-    ul.build-details li.trigger,
-    ul.build-details .accordion-item.trigger {
-      border-left-color: transparent; }
-    ul.build-details li.trigger, ul.build-details li.result,
+    ul.build-details li.trigger, ul.build-details li:first-child, ul.build-details li:last-child,
     ul.build-details .accordion-item.trigger,
-    ul.build-details .accordion-item.result {
+    ul.build-details .accordion-item:first-child,
+    ul.build-details .accordion-item:last-child {
+      border-left-color: transparent; }
+    ul.build-details li.trigger, ul.build-details li.result, ul.build-details li:first-child, ul.build-details li:last-child,
+    ul.build-details .accordion-item.trigger,
+    ul.build-details .accordion-item.result,
+    ul.build-details .accordion-item:first-child,
+    ul.build-details .accordion-item:last-child {
       margin-left: 0; }
     ul.build-details li ul,
     ul.build-details li .accordion,
