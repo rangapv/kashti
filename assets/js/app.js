@@ -54,7 +54,7 @@
   app.controller("projectsController", function ($scope, $http) {
     $http({
       method: 'GET',
-      url: 'http://acid-api.technosophos.me:7745/v1/projects',
+      url: '//acid-api.technosophos.me:7745/v1/projects',
       isArray: true,
       headers: {
         'Accept': 'application/json, text/javascript',
