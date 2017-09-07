@@ -9677,9 +9677,13 @@ footer {
           display: block;
           content: " ";
           z-index: 500; }
-      .build-list .build-item a .act-author .avatar {
-        max-width: 30px;
-        border-radius: 0.25rem; }
+      .build-list .build-item a .act-author {
+        padding-left: 2.5rem; }
+        .build-list .build-item a .act-author .avatar {
+          max-width: 30px;
+          border-radius: 0.25rem; }
+      .build-list .build-item a .act-message {
+        padding-left: 2.5rem; }
       .build-list .build-item a:after {
         content: "Details >";
         color: #37B0E7;
