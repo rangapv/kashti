@@ -8846,6 +8846,21 @@ blockquote p {
 .ion-xbox:before {
   content: ""; }
 
+.success {
+  color: #70AE29; }
+
+.fail {
+  color: #D10015; }
+
+.error {
+  color: #D10015; }
+
+.warn {
+  color: #f4a117; }
+
+.active {
+  color: #37B0E7; }
+
 @font-face {
   font-family: 'europabold';
   src: url("../fonts/europa-bold-webfont.woff2") format("woff2"), url("../fonts/europa-bold-webfont.woff") format("woff");
@@ -9764,6 +9779,16 @@ footer {
     margin-bottom: 1.25rem;
     margin: -0.25em 0 1em;
     position: relative; }
+    .build-header h1 a {
+      position: absolute;
+      left: -2rem;
+      padding-right: 1.5rem;
+      color: #37B0E7;
+      font-size: 1.25rem;
+      top: 0.35rem;
+      transition: all 0.3s ease-in-out; }
+      .build-header h1 a:hover {
+        left: -2.5rem; }
     .build-header h1 small {
       font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
       font-size: 0.667rem;
@@ -9863,6 +9888,14 @@ footer {
       top: 8rem;
       width: 15%; }
 
+.job-list h4 {
+  margin: 0 2rem;
+  font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
+  font-weight: bold;
+  letter-spacing: 0.025em;
+  font-size: 1.25rem;
+  color: #93B7BE; }
+
 ul.build-details {
   list-style: none;
   margin: 0.5rem 1.5rem 3rem; }
@@ -9911,6 +9944,69 @@ ul.build-details {
     ul.build-details .accordion-item ul,
     ul.build-details .accordion-item .accordion {
       margin: 1rem 0 1rem 0.5rem; }
+  ul.build-details li.parent em {
+    background: #F4F5F7;
+    font-style: normal;
+    color: #2D3047;
+    font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.825rem;
+    border-radius: 3px;
+    margin-left: 0.3rem;
+    margin-right: 0.3rem; }
+    ul.build-details li.parent em img {
+      max-height: 1.425rem; }
+    ul.build-details li.parent em i {
+      font-size: 0.925rem;
+      margin-right: -0.125rem; }
+  ul.build-details li.job {
+    margin-left: 2rem;
+    position: relative; }
+    ul.build-details li.job h5 {
+      font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
+      font-weight: bold;
+      letter-spacing: 0.025em;
+      font-size: 1.5rem;
+      padding: 0.333em 0 2em; }
+    ul.build-details li.job small {
+      font-size: 0.667rem;
+      font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+      color: #93B7BE;
+      background: #fbfcfc;
+      border-radius: 6px;
+      padding: 0 0.5rem;
+      margin-top: 0;
+      margin-left: -0.5rem; }
+    ul.build-details li.job dl {
+      margin-left: 200px;
+      margin-top: -32px; }
+      ul.build-details li.job dl dt,
+      ul.build-details li.job dl dd {
+        display: inline-block;
+        color: #93B7BE;
+        font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
+        font-size: 0.925rem;
+        line-height: 1;
+        margin: 0;
+        padding: 0; }
+      ul.build-details li.job dl dt {
+        width: 20%;
+        font-weight: normal; }
+      ul.build-details li.job dl dd {
+        width: 70%; }
+    ul.build-details li.job .job-response {
+      position: absolute;
+      font-size: 0.925rem;
+      left: 0.5rem;
+      top: 5.25rem;
+      background: #F4F5F7;
+      padding: 0.25rem 0.65rem;
+      border-radius: 3rem; }
+      ul.build-details li.job .job-response i,
+      ul.build-details li.job .job-response img {
+        max-height: 1.5rem; }
+  ul.build-details li.active {
+    border-left: 6px solid #37B0E7; }
   ul.build-details li.zf-accordion-wrap {
     background: none;
     box-shadow: none;

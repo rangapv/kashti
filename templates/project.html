@@ -1,5 +1,5 @@
 
-<div class="grid-container" ng-controller="projectController">
+<div class="grid-container">
 
   <div class="grid-content project-header-wrap">
     <div class="grid-block horizontal">
@@ -50,6 +50,7 @@ Events:
   </div>
 
   <div class="project-filters grid-content">
+
     <div class="grid-block">
       <select class="small-3">
         <option>master</option>
@@ -86,9 +87,12 @@ Events:
         <div class="act-message small-4 collapse">
           {{ build.id }}
         </div>
-        <div class="act-hash small-3 collapse">{{build.commit | limitTo : -6: number.length }}</div>
+        <div class="act-hash small-2 collapse">{{build.commit | limitTo : -6: number.length }}</div>
         <div class="act-time-ago small-1 collapse">{(timeago)}</div>
         <div class="act-time-duration small-1 collapse">{(duration)}</div>
+        <!-- <div class="act-child-jobs small-2 collapse">
+          {{ build.jobs.length }}
+        </div> -->
       </a>
     </li>
   </ul>
