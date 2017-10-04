@@ -5276,6 +5276,823 @@ if (typeof define === 'function' && define.amd) {
 
 })(window, document, 'Hammer');
 
+/*
+Syntax highlighting with language autodetection.
+https://highlightjs.org/
+*/
+
+(function(factory) {
+
+  // Find the global object for export to both the browser and web workers.
+  var globalObject = typeof window === 'object' && window ||
+                     typeof self === 'object' && self;
+
+  // Setup highlight.js for different environments. First is Node.js or
+  // CommonJS.
+  if(typeof exports !== 'undefined') {
+    factory(exports);
+  } else if(globalObject) {
+    // Export hljs globally even when using AMD for cases when this script
+    // is loaded with others that may still expect a global hljs.
+    globalObject.hljs = factory({});
+
+    // Finally register the global hljs with AMD.
+    if(typeof define === 'function' && define.amd) {
+      define([], function() {
+        return globalObject.hljs;
+      });
+    }
+  }
+
+}(function(hljs) {
+  // Convenience variables for build-in objects
+  var ArrayProto = [],
+      objectKeys = Object.keys;
+
+  // Global internal variables used within the highlight.js library.
+  var languages = {},
+      aliases   = {};
+
+  // Regular expressions used throughout the highlight.js library.
+  var noHighlightRe    = /^(no-?highlight|plain|text)$/i,
+      languagePrefixRe = /\blang(?:uage)?-([\w-]+)\b/i,
+      fixMarkupRe      = /((^(<[^>]+>|\t|)+|(?:\n)))/gm;
+
+  var spanEndTag = '</span>';
+
+  // Global options used when within external APIs. This is modified when
+  // calling the `hljs.configure` function.
+  var options = {
+    classPrefix: 'hljs-',
+    tabReplace: null,
+    useBR: false,
+    languages: undefined
+  };
+
+
+  /* Utility functions */
+
+  function escape(value) {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function tag(node) {
+    return node.nodeName.toLowerCase();
+  }
+
+  function testRe(re, lexeme) {
+    var match = re && re.exec(lexeme);
+    return match && match.index === 0;
+  }
+
+  function isNotHighlighted(language) {
+    return noHighlightRe.test(language);
+  }
+
+  function blockLanguage(block) {
+    var i, match, length, _class;
+    var classes = block.className + ' ';
+
+    classes += block.parentNode ? block.parentNode.className : '';
+
+    // language-* takes precedence over non-prefixed class names.
+    match = languagePrefixRe.exec(classes);
+    if (match) {
+      return getLanguage(match[1]) ? match[1] : 'no-highlight';
+    }
+
+    classes = classes.split(/\s+/);
+
+    for (i = 0, length = classes.length; i < length; i++) {
+      _class = classes[i]
+
+      if (isNotHighlighted(_class) || getLanguage(_class)) {
+        return _class;
+      }
+    }
+  }
+
+  function inherit(parent) {  // inherit(parent, override_obj, override_obj, ...)
+    var key;
+    var result = {};
+    var objects = Array.prototype.slice.call(arguments, 1);
+
+    for (key in parent)
+      result[key] = parent[key];
+    objects.forEach(function(obj) {
+      for (key in obj)
+        result[key] = obj[key];
+    });
+    return result;
+  }
+
+  /* Stream merging */
+
+  function nodeStream(node) {
+    var result = [];
+    (function _nodeStream(node, offset) {
+      for (var child = node.firstChild; child; child = child.nextSibling) {
+        if (child.nodeType === 3)
+          offset += child.nodeValue.length;
+        else if (child.nodeType === 1) {
+          result.push({
+            event: 'start',
+            offset: offset,
+            node: child
+          });
+          offset = _nodeStream(child, offset);
+          // Prevent void elements from having an end tag that would actually
+          // double them in the output. There are more void elements in HTML
+          // but we list only those realistically expected in code display.
+          if (!tag(child).match(/br|hr|img|input/)) {
+            result.push({
+              event: 'stop',
+              offset: offset,
+              node: child
+            });
+          }
+        }
+      }
+      return offset;
+    })(node, 0);
+    return result;
+  }
+
+  function mergeStreams(original, highlighted, value) {
+    var processed = 0;
+    var result = '';
+    var nodeStack = [];
+
+    function selectStream() {
+      if (!original.length || !highlighted.length) {
+        return original.length ? original : highlighted;
+      }
+      if (original[0].offset !== highlighted[0].offset) {
+        return (original[0].offset < highlighted[0].offset) ? original : highlighted;
+      }
+
+      /*
+      To avoid starting the stream just before it should stop the order is
+      ensured that original always starts first and closes last:
+
+      if (event1 == 'start' && event2 == 'start')
+        return original;
+      if (event1 == 'start' && event2 == 'stop')
+        return highlighted;
+      if (event1 == 'stop' && event2 == 'start')
+        return original;
+      if (event1 == 'stop' && event2 == 'stop')
+        return highlighted;
+
+      ... which is collapsed to:
+      */
+      return highlighted[0].event === 'start' ? original : highlighted;
+    }
+
+    function open(node) {
+      function attr_str(a) {return ' ' + a.nodeName + '="' + escape(a.value).replace('"', '&quot;') + '"';}
+      result += '<' + tag(node) + ArrayProto.map.call(node.attributes, attr_str).join('') + '>';
+    }
+
+    function close(node) {
+      result += '</' + tag(node) + '>';
+    }
+
+    function render(event) {
+      (event.event === 'start' ? open : close)(event.node);
+    }
+
+    while (original.length || highlighted.length) {
+      var stream = selectStream();
+      result += escape(value.substring(processed, stream[0].offset));
+      processed = stream[0].offset;
+      if (stream === original) {
+        /*
+        On any opening or closing tag of the original markup we first close
+        the entire highlighted node stack, then render the original tag along
+        with all the following original tags at the same offset and then
+        reopen all the tags on the highlighted stack.
+        */
+        nodeStack.reverse().forEach(close);
+        do {
+          render(stream.splice(0, 1)[0]);
+          stream = selectStream();
+        } while (stream === original && stream.length && stream[0].offset === processed);
+        nodeStack.reverse().forEach(open);
+      } else {
+        if (stream[0].event === 'start') {
+          nodeStack.push(stream[0].node);
+        } else {
+          nodeStack.pop();
+        }
+        render(stream.splice(0, 1)[0]);
+      }
+    }
+    return result + escape(value.substr(processed));
+  }
+
+  /* Initialization */
+
+  function expand_mode(mode) {
+    if (mode.variants && !mode.cached_variants) {
+      mode.cached_variants = mode.variants.map(function(variant) {
+        return inherit(mode, {variants: null}, variant);
+      });
+    }
+    return mode.cached_variants || (mode.endsWithParent && [inherit(mode)]) || [mode];
+  }
+
+  function compileLanguage(language) {
+
+    function reStr(re) {
+        return (re && re.source) || re;
+    }
+
+    function langRe(value, global) {
+      return new RegExp(
+        reStr(value),
+        'm' + (language.case_insensitive ? 'i' : '') + (global ? 'g' : '')
+      );
+    }
+
+    function compileMode(mode, parent) {
+      if (mode.compiled)
+        return;
+      mode.compiled = true;
+
+      mode.keywords = mode.keywords || mode.beginKeywords;
+      if (mode.keywords) {
+        var compiled_keywords = {};
+
+        var flatten = function(className, str) {
+          if (language.case_insensitive) {
+            str = str.toLowerCase();
+          }
+          str.split(' ').forEach(function(kw) {
+            var pair = kw.split('|');
+            compiled_keywords[pair[0]] = [className, pair[1] ? Number(pair[1]) : 1];
+          });
+        };
+
+        if (typeof mode.keywords === 'string') { // string
+          flatten('keyword', mode.keywords);
+        } else {
+          objectKeys(mode.keywords).forEach(function (className) {
+            flatten(className, mode.keywords[className]);
+          });
+        }
+        mode.keywords = compiled_keywords;
+      }
+      mode.lexemesRe = langRe(mode.lexemes || /\w+/, true);
+
+      if (parent) {
+        if (mode.beginKeywords) {
+          mode.begin = '\\b(' + mode.beginKeywords.split(' ').join('|') + ')\\b';
+        }
+        if (!mode.begin)
+          mode.begin = /\B|\b/;
+        mode.beginRe = langRe(mode.begin);
+        if (!mode.end && !mode.endsWithParent)
+          mode.end = /\B|\b/;
+        if (mode.end)
+          mode.endRe = langRe(mode.end);
+        mode.terminator_end = reStr(mode.end) || '';
+        if (mode.endsWithParent && parent.terminator_end)
+          mode.terminator_end += (mode.end ? '|' : '') + parent.terminator_end;
+      }
+      if (mode.illegal)
+        mode.illegalRe = langRe(mode.illegal);
+      if (mode.relevance == null)
+        mode.relevance = 1;
+      if (!mode.contains) {
+        mode.contains = [];
+      }
+      mode.contains = Array.prototype.concat.apply([], mode.contains.map(function(c) {
+        return expand_mode(c === 'self' ? mode : c)
+      }));
+      mode.contains.forEach(function(c) {compileMode(c, mode);});
+
+      if (mode.starts) {
+        compileMode(mode.starts, parent);
+      }
+
+      var terminators =
+        mode.contains.map(function(c) {
+          return c.beginKeywords ? '\\.?(' + c.begin + ')\\.?' : c.begin;
+        })
+        .concat([mode.terminator_end, mode.illegal])
+        .map(reStr)
+        .filter(Boolean);
+      mode.terminators = terminators.length ? langRe(terminators.join('|'), true) : {exec: function(/*s*/) {return null;}};
+    }
+
+    compileMode(language);
+  }
+
+  /*
+  Core highlighting function. Accepts a language name, or an alias, and a
+  string with the code to highlight. Returns an object with the following
+  properties:
+
+  - relevance (int)
+  - value (an HTML string with highlighting markup)
+
+  */
+  function highlight(name, value, ignore_illegals, continuation) {
+
+    function subMode(lexeme, mode) {
+      var i, length;
+
+      for (i = 0, length = mode.contains.length; i < length; i++) {
+        if (testRe(mode.contains[i].beginRe, lexeme)) {
+          return mode.contains[i];
+        }
+      }
+    }
+
+    function endOfMode(mode, lexeme) {
+      if (testRe(mode.endRe, lexeme)) {
+        while (mode.endsParent && mode.parent) {
+          mode = mode.parent;
+        }
+        return mode;
+      }
+      if (mode.endsWithParent) {
+        return endOfMode(mode.parent, lexeme);
+      }
+    }
+
+    function isIllegal(lexeme, mode) {
+      return !ignore_illegals && testRe(mode.illegalRe, lexeme);
+    }
+
+    function keywordMatch(mode, match) {
+      var match_str = language.case_insensitive ? match[0].toLowerCase() : match[0];
+      return mode.keywords.hasOwnProperty(match_str) && mode.keywords[match_str];
+    }
+
+    function buildSpan(classname, insideSpan, leaveOpen, noPrefix) {
+      var classPrefix = noPrefix ? '' : options.classPrefix,
+          openSpan    = '<span class="' + classPrefix,
+          closeSpan   = leaveOpen ? '' : spanEndTag
+
+      openSpan += classname + '">';
+
+      return openSpan + insideSpan + closeSpan;
+    }
+
+    function processKeywords() {
+      var keyword_match, last_index, match, result;
+
+      if (!top.keywords)
+        return escape(mode_buffer);
+
+      result = '';
+      last_index = 0;
+      top.lexemesRe.lastIndex = 0;
+      match = top.lexemesRe.exec(mode_buffer);
+
+      while (match) {
+        result += escape(mode_buffer.substring(last_index, match.index));
+        keyword_match = keywordMatch(top, match);
+        if (keyword_match) {
+          relevance += keyword_match[1];
+          result += buildSpan(keyword_match[0], escape(match[0]));
+        } else {
+          result += escape(match[0]);
+        }
+        last_index = top.lexemesRe.lastIndex;
+        match = top.lexemesRe.exec(mode_buffer);
+      }
+      return result + escape(mode_buffer.substr(last_index));
+    }
+
+    function processSubLanguage() {
+      var explicit = typeof top.subLanguage === 'string';
+      if (explicit && !languages[top.subLanguage]) {
+        return escape(mode_buffer);
+      }
+
+      var result = explicit ?
+                   highlight(top.subLanguage, mode_buffer, true, continuations[top.subLanguage]) :
+                   highlightAuto(mode_buffer, top.subLanguage.length ? top.subLanguage : undefined);
+
+      // Counting embedded language score towards the host language may be disabled
+      // with zeroing the containing mode relevance. Usecase in point is Markdown that
+      // allows XML everywhere and makes every XML snippet to have a much larger Markdown
+      // score.
+      if (top.relevance > 0) {
+        relevance += result.relevance;
+      }
+      if (explicit) {
+        continuations[top.subLanguage] = result.top;
+      }
+      return buildSpan(result.language, result.value, false, true);
+    }
+
+    function processBuffer() {
+      result += (top.subLanguage != null ? processSubLanguage() : processKeywords());
+      mode_buffer = '';
+    }
+
+    function startNewMode(mode) {
+      result += mode.className? buildSpan(mode.className, '', true): '';
+      top = Object.create(mode, {parent: {value: top}});
+    }
+
+    function processLexeme(buffer, lexeme) {
+
+      mode_buffer += buffer;
+
+      if (lexeme == null) {
+        processBuffer();
+        return 0;
+      }
+
+      var new_mode = subMode(lexeme, top);
+      if (new_mode) {
+        if (new_mode.skip) {
+          mode_buffer += lexeme;
+        } else {
+          if (new_mode.excludeBegin) {
+            mode_buffer += lexeme;
+          }
+          processBuffer();
+          if (!new_mode.returnBegin && !new_mode.excludeBegin) {
+            mode_buffer = lexeme;
+          }
+        }
+        startNewMode(new_mode, lexeme);
+        return new_mode.returnBegin ? 0 : lexeme.length;
+      }
+
+      var end_mode = endOfMode(top, lexeme);
+      if (end_mode) {
+        var origin = top;
+        if (origin.skip) {
+          mode_buffer += lexeme;
+        } else {
+          if (!(origin.returnEnd || origin.excludeEnd)) {
+            mode_buffer += lexeme;
+          }
+          processBuffer();
+          if (origin.excludeEnd) {
+            mode_buffer = lexeme;
+          }
+        }
+        do {
+          if (top.className) {
+            result += spanEndTag;
+          }
+          if (!top.skip) {
+            relevance += top.relevance;
+          }
+          top = top.parent;
+        } while (top !== end_mode.parent);
+        if (end_mode.starts) {
+          startNewMode(end_mode.starts, '');
+        }
+        return origin.returnEnd ? 0 : lexeme.length;
+      }
+
+      if (isIllegal(lexeme, top))
+        throw new Error('Illegal lexeme "' + lexeme + '" for mode "' + (top.className || '<unnamed>') + '"');
+
+      /*
+      Parser should not reach this point as all types of lexemes should be caught
+      earlier, but if it does due to some bug make sure it advances at least one
+      character forward to prevent infinite looping.
+      */
+      mode_buffer += lexeme;
+      return lexeme.length || 1;
+    }
+
+    var language = getLanguage(name);
+    if (!language) {
+      throw new Error('Unknown language: "' + name + '"');
+    }
+
+    compileLanguage(language);
+    var top = continuation || language;
+    var continuations = {}; // keep continuations for sub-languages
+    var result = '', current;
+    for(current = top; current !== language; current = current.parent) {
+      if (current.className) {
+        result = buildSpan(current.className, '', true) + result;
+      }
+    }
+    var mode_buffer = '';
+    var relevance = 0;
+    try {
+      var match, count, index = 0;
+      while (true) {
+        top.terminators.lastIndex = index;
+        match = top.terminators.exec(value);
+        if (!match)
+          break;
+        count = processLexeme(value.substring(index, match.index), match[0]);
+        index = match.index + count;
+      }
+      processLexeme(value.substr(index));
+      for(current = top; current.parent; current = current.parent) { // close dangling modes
+        if (current.className) {
+          result += spanEndTag;
+        }
+      }
+      return {
+        relevance: relevance,
+        value: result,
+        language: name,
+        top: top
+      };
+    } catch (e) {
+      if (e.message && e.message.indexOf('Illegal') !== -1) {
+        return {
+          relevance: 0,
+          value: escape(value)
+        };
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  /*
+  Highlighting with language detection. Accepts a string with the code to
+  highlight. Returns an object with the following properties:
+
+  - language (detected language)
+  - relevance (int)
+  - value (an HTML string with highlighting markup)
+  - second_best (object with the same structure for second-best heuristically
+    detected language, may be absent)
+
+  */
+  function highlightAuto(text, languageSubset) {
+    languageSubset = languageSubset || options.languages || objectKeys(languages);
+    var result = {
+      relevance: 0,
+      value: escape(text)
+    };
+    var second_best = result;
+    languageSubset.filter(getLanguage).forEach(function(name) {
+      var current = highlight(name, text, false);
+      current.language = name;
+      if (current.relevance > second_best.relevance) {
+        second_best = current;
+      }
+      if (current.relevance > result.relevance) {
+        second_best = result;
+        result = current;
+      }
+    });
+    if (second_best.language) {
+      result.second_best = second_best;
+    }
+    return result;
+  }
+
+  /*
+  Post-processing of the highlighted markup:
+
+  - replace TABs with something more useful
+  - replace real line-breaks with '<br>' for non-pre containers
+
+  */
+  function fixMarkup(value) {
+    return !(options.tabReplace || options.useBR)
+      ? value
+      : value.replace(fixMarkupRe, function(match, p1) {
+          if (options.useBR && match === '\n') {
+            return '<br>';
+          } else if (options.tabReplace) {
+            return p1.replace(/\t/g, options.tabReplace);
+          }
+          return '';
+      });
+  }
+
+  function buildClassName(prevClassName, currentLang, resultLang) {
+    var language = currentLang ? aliases[currentLang] : resultLang,
+        result   = [prevClassName.trim()];
+
+    if (!prevClassName.match(/\bhljs\b/)) {
+      result.push('hljs');
+    }
+
+    if (prevClassName.indexOf(language) === -1) {
+      result.push(language);
+    }
+
+    return result.join(' ').trim();
+  }
+
+  /*
+  Applies highlighting to a DOM node containing code. Accepts a DOM node and
+  two optional parameters for fixMarkup.
+  */
+  function highlightBlock(block) {
+    var node, originalStream, result, resultNode, text;
+    var language = blockLanguage(block);
+
+    if (isNotHighlighted(language))
+        return;
+
+    if (options.useBR) {
+      node = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      node.innerHTML = block.innerHTML.replace(/\n/g, '').replace(/<br[ \/]*>/g, '\n');
+    } else {
+      node = block;
+    }
+    text = node.textContent;
+    result = language ? highlight(language, text, true) : highlightAuto(text);
+
+    originalStream = nodeStream(node);
+    if (originalStream.length) {
+      resultNode = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      resultNode.innerHTML = result.value;
+      result.value = mergeStreams(originalStream, nodeStream(resultNode), text);
+    }
+    result.value = fixMarkup(result.value);
+
+    block.innerHTML = result.value;
+    block.className = buildClassName(block.className, language, result.language);
+    block.result = {
+      language: result.language,
+      re: result.relevance
+    };
+    if (result.second_best) {
+      block.second_best = {
+        language: result.second_best.language,
+        re: result.second_best.relevance
+      };
+    }
+  }
+
+  /*
+  Updates highlight.js global options with values passed in the form of an object.
+  */
+  function configure(user_options) {
+    options = inherit(options, user_options);
+  }
+
+  /*
+  Applies highlighting to all <pre><code>..</code></pre> blocks on a page.
+  */
+  function initHighlighting() {
+    if (initHighlighting.called)
+      return;
+    initHighlighting.called = true;
+
+    var blocks = document.querySelectorAll('pre code');
+    ArrayProto.forEach.call(blocks, highlightBlock);
+  }
+
+  /*
+  Attaches highlighting to the page load event.
+  */
+  function initHighlightingOnLoad() {
+    addEventListener('DOMContentLoaded', initHighlighting, false);
+    addEventListener('load', initHighlighting, false);
+  }
+
+  function registerLanguage(name, language) {
+    var lang = languages[name] = language(hljs);
+    if (lang.aliases) {
+      lang.aliases.forEach(function(alias) {aliases[alias] = name;});
+    }
+  }
+
+  function listLanguages() {
+    return objectKeys(languages);
+  }
+
+  function getLanguage(name) {
+    name = (name || '').toLowerCase();
+    return languages[name] || languages[aliases[name]];
+  }
+
+  /* Interface definition */
+
+  hljs.highlight = highlight;
+  hljs.highlightAuto = highlightAuto;
+  hljs.fixMarkup = fixMarkup;
+  hljs.highlightBlock = highlightBlock;
+  hljs.configure = configure;
+  hljs.initHighlighting = initHighlighting;
+  hljs.initHighlightingOnLoad = initHighlightingOnLoad;
+  hljs.registerLanguage = registerLanguage;
+  hljs.listLanguages = listLanguages;
+  hljs.getLanguage = getLanguage;
+  hljs.inherit = inherit;
+
+  // Common regexps
+  hljs.IDENT_RE = '[a-zA-Z]\\w*';
+  hljs.UNDERSCORE_IDENT_RE = '[a-zA-Z_]\\w*';
+  hljs.NUMBER_RE = '\\b\\d+(\\.\\d+)?';
+  hljs.C_NUMBER_RE = '(-?)(\\b0[xX][a-fA-F0-9]+|(\\b\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)'; // 0x..., 0..., decimal, float
+  hljs.BINARY_NUMBER_RE = '\\b(0b[01]+)'; // 0b...
+  hljs.RE_STARTERS_RE = '!|!=|!==|%|%=|&|&&|&=|\\*|\\*=|\\+|\\+=|,|-|-=|/=|/|:|;|<<|<<=|<=|<|===|==|=|>>>=|>>=|>=|>>>|>>|>|\\?|\\[|\\{|\\(|\\^|\\^=|\\||\\|=|\\|\\||~';
+
+  // Common modes
+  hljs.BACKSLASH_ESCAPE = {
+    begin: '\\\\[\\s\\S]', relevance: 0
+  };
+  hljs.APOS_STRING_MODE = {
+    className: 'string',
+    begin: '\'', end: '\'',
+    illegal: '\\n',
+    contains: [hljs.BACKSLASH_ESCAPE]
+  };
+  hljs.QUOTE_STRING_MODE = {
+    className: 'string',
+    begin: '"', end: '"',
+    illegal: '\\n',
+    contains: [hljs.BACKSLASH_ESCAPE]
+  };
+  hljs.PHRASAL_WORDS_MODE = {
+    begin: /\b(a|an|the|are|I'm|isn't|don't|doesn't|won't|but|just|should|pretty|simply|enough|gonna|going|wtf|so|such|will|you|your|they|like|more)\b/
+  };
+  hljs.COMMENT = function (begin, end, inherits) {
+    var mode = hljs.inherit(
+      {
+        className: 'comment',
+        begin: begin, end: end,
+        contains: []
+      },
+      inherits || {}
+    );
+    mode.contains.push(hljs.PHRASAL_WORDS_MODE);
+    mode.contains.push({
+      className: 'doctag',
+      begin: '(?:TODO|FIXME|NOTE|BUG|XXX):',
+      relevance: 0
+    });
+    return mode;
+  };
+  hljs.C_LINE_COMMENT_MODE = hljs.COMMENT('//', '$');
+  hljs.C_BLOCK_COMMENT_MODE = hljs.COMMENT('/\\*', '\\*/');
+  hljs.HASH_COMMENT_MODE = hljs.COMMENT('#', '$');
+  hljs.NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.NUMBER_RE,
+    relevance: 0
+  };
+  hljs.C_NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.C_NUMBER_RE,
+    relevance: 0
+  };
+  hljs.BINARY_NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.BINARY_NUMBER_RE,
+    relevance: 0
+  };
+  hljs.CSS_NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.NUMBER_RE + '(' +
+      '%|em|ex|ch|rem'  +
+      '|vw|vh|vmin|vmax' +
+      '|cm|mm|in|pt|pc|px' +
+      '|deg|grad|rad|turn' +
+      '|s|ms' +
+      '|Hz|kHz' +
+      '|dpi|dpcm|dppx' +
+      ')?',
+    relevance: 0
+  };
+  hljs.REGEXP_MODE = {
+    className: 'regexp',
+    begin: /\//, end: /\/[gimuy]*/,
+    illegal: /\n/,
+    contains: [
+      hljs.BACKSLASH_ESCAPE,
+      {
+        begin: /\[/, end: /\]/,
+        relevance: 0,
+        contains: [hljs.BACKSLASH_ESCAPE]
+      }
+    ]
+  };
+  hljs.TITLE_MODE = {
+    className: 'title',
+    begin: hljs.IDENT_RE,
+    relevance: 0
+  };
+  hljs.UNDERSCORE_TITLE_MODE = {
+    className: 'title',
+    begin: hljs.UNDERSCORE_IDENT_RE,
+    relevance: 0
+  };
+  hljs.METHOD_GUARD = {
+    // excludes method names from keyword processing
+    begin: '\\.\\s*' + hljs.UNDERSCORE_IDENT_RE,
+    relevance: 0
+  };
+
+  return hljs;
+}));
+
 /**
  * @license AngularJS v1.4.14
  * (c) 2010-2015 Google, Inc. http://angularjs.org
@@ -44356,6 +45173,528 @@ angular.module('ngResource', ['ng']).
 
 })(window, window.angular);
 
+/*! angular-highlightjs
+version: 0.7.1
+build date: 2017-02-28
+author: Chih-Hsuan Fan
+https://github.com/pc035860/angular-highlightjs.git */
+
+(function (root, factory) {
+  if (typeof exports === "object" || (typeof module === "object" && module.exports)) {
+    module.exports = factory(require("angular"), require("highlight.js"));
+  } else if (typeof define === "function" && define.amd) {
+    define(["angular", "hljs"], factory);
+  } else {
+    root.returnExports = factory(root.angular, root.hljs);
+  }
+}(this, function (angular, hljs) {
+
+/*global angular, hljs*/
+
+/**
+ * returns a function to transform attrs to supported ones
+ *
+ * escape:
+ *   hljs-escape or escape
+ * no-escape:
+ *   hljs-no-escape or no-escape
+ * onhighlight:
+ *   hljs-onhighlight or onhighlight
+ */
+function attrGetter(attrs) {
+  return function (name) {
+    switch (name) {
+      case 'escape':
+        return angular.isDefined(attrs.hljsEscape) ?
+          attrs.hljsEscape :
+          attrs.escape;
+
+      case 'no-escape':
+        return angular.isDefined(attrs.hljsNoEscape) ?
+          attrs.hljsNoEscape :
+          attrs.noEscape;
+
+      case 'onhighlight':
+        return angular.isDefined(attrs.hljsOnhighlight) ?
+          attrs.hljsOnhighlight :
+          attrs.onhighlight;
+    }
+  };
+}
+
+function shouldHighlightStatics(attrs) {
+  var should = true;
+  angular.forEach([
+    'source', 'include'
+  ], function (name) {
+    if (attrs[name]) {
+      should = false;
+    }
+  });
+  return should;
+}
+
+var ngModule = angular.module('hljs', []);
+
+/**
+ * hljsService service
+ */
+ngModule.provider('hljsService', function () {
+  var _hljsOptions = {};
+
+  return {
+    setOptions: function (options) {
+      angular.extend(_hljsOptions, options);
+    },
+    getOptions: function () {
+      return angular.copy(_hljsOptions);
+    },
+    $get: function () {
+      (hljs.configure || angular.noop)(_hljsOptions);
+      return hljs;
+    }
+  };
+});
+
+/**
+ * hljsCache service
+ */
+ngModule.factory('hljsCache', ["$cacheFactory", function ($cacheFactory) {
+  return $cacheFactory('hljsCache');
+}]);
+
+/**
+ * HljsCtrl controller
+ */
+ngModule.controller('HljsCtrl',
+["hljsCache", "hljsService", "$interpolate", "$window", function HljsCtrl (hljsCache, hljsService, $interpolate, $window) {
+  var ctrl = this;
+
+  var _elm = null,
+      _lang = null,
+      _code = null,
+      _interpolateScope = false,
+      _stopInterpolateWatch = null,
+      _hlCb = null;
+
+  var RE_INTERPOLATION_STR = escapeRe($interpolate.startSymbol()) +
+    '((.|\\s)+?)' + escapeRe($interpolate.endSymbol());
+
+  var INTERPOLATION_SYMBOL = '∫';
+
+  ctrl.init = function (codeElm) {
+    _elm = codeElm;
+  };
+
+  ctrl.setInterpolateScope = function (scope) {
+    _interpolateScope = scope;
+
+    if (_code) {
+      ctrl.highlight(_code);
+    }
+  };
+
+  ctrl.setLanguage = function (lang) {
+    _lang = lang;
+
+    if (_code) {
+      ctrl.highlight(_code);
+    }
+  };
+
+  ctrl.highlightCallback = function (cb) {
+    _hlCb = cb;
+  };
+
+  ctrl._highlight = function (code) {
+    if (!_elm) {
+      return;
+    }
+
+    var res, cacheKey, interpolateData;
+
+    _code = code;  // preserve raw code
+
+    if (_interpolateScope) {
+      interpolateData = extractInterpolations(code);
+      code = interpolateData.code;
+    }
+
+    if (_lang) {
+      // cache key: language, scope, code
+      cacheKey = ctrl._cacheKey(_lang, !!_interpolateScope, code);
+      res = hljsCache.get(cacheKey);
+
+      if (!res) {
+        res = hljsService.highlight(_lang, hljsService.fixMarkup(code), true);
+        hljsCache.put(cacheKey, res);
+      }
+    }
+    else {
+      // cache key: scope, code
+      cacheKey = ctrl._cacheKey(!!_interpolateScope, code);
+      res = hljsCache.get(cacheKey);
+
+      if (!res) {
+        res = hljsService.highlightAuto(hljsService.fixMarkup(code));
+        hljsCache.put(cacheKey, res);
+      }
+    }
+
+    code = res.value;
+
+    if (_interpolateScope) {
+      (_stopInterpolateWatch||angular.noop)();
+
+      if (interpolateData) {
+        code = recoverInterpolations(code, interpolateData.tokens);
+      }
+
+      var interpolateFn = $interpolate(code);
+      _stopInterpolateWatch = _interpolateScope.$watch(interpolateFn, function (newVal, oldVal) {
+        if (newVal !== oldVal) {
+          _elm.html(newVal);
+        }
+      });
+      _interpolateScope.$apply();
+      _elm.html(interpolateFn(_interpolateScope));
+    }
+    else {
+      _elm.html(code);
+    }
+
+    // language as class on the <code> tag
+    _elm.addClass(res.language);
+
+    if (_hlCb !== null && angular.isFunction(_hlCb)) {
+      _hlCb();
+    }
+  };
+  ctrl.highlight = debounce(ctrl._highlight, 17);
+
+  ctrl.clear = function () {
+    if (!_elm) {
+      return;
+    }
+    _code = null;
+    _elm.text('');
+  };
+
+  ctrl.release = function () {
+    _elm = null;
+    _interpolateScope = null;
+    (_stopInterpolateWatch||angular.noop)();
+    _stopInterpolateWatch = null;
+  };
+
+  ctrl._cacheKey = function () {
+    var args = Array.prototype.slice.call(arguments),
+        glue = "!angular-highlightjs!";
+    return args.join(glue);
+  };
+
+
+  // http://davidwalsh.name/function-debounce
+  function debounce(func, wait, immediate) {
+    var timeout;
+    return function() {
+      var context = this, args = arguments;
+      var later = function() {
+        timeout = null;
+        if (!immediate) {
+          func.apply(context, args);
+        }
+      };
+      var callNow = immediate && !timeout;
+      $window.clearTimeout(timeout);
+      timeout = $window.setTimeout(later, wait);
+      if (callNow) {
+        func.apply(context, args);
+      }
+    };
+  }
+
+  // Ref: http://stackoverflow.com/questions/3115150/how-to-escape-regular-expression-special-characters-using-javascript
+  function escapeRe(text, asString) {
+    var replacement = asString ? "\\\\$&" : "\\$&";
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, replacement);
+  }
+
+  function extractInterpolations(code) {
+    var interpolateTokens = [],
+        re = new RegExp(RE_INTERPOLATION_STR, 'g'),
+        newCode = '',
+        lastIndex = 0,
+        arr;
+
+    while ((arr = re.exec(code)) !== null) {
+      newCode += code.substring(lastIndex, arr.index) + INTERPOLATION_SYMBOL;
+      lastIndex = arr.index + arr[0].length;
+      interpolateTokens.push(arr[0]);
+    }
+
+    newCode += code.substr(lastIndex);
+
+    return {
+      code: newCode,
+      tokens: interpolateTokens
+    };
+  }
+
+  function recoverInterpolations(code, tokens) {
+    var re = new RegExp(INTERPOLATION_SYMBOL, 'g'),
+        newCode = '',
+        lastIndex = 0,
+        arr;
+
+    while ((arr = re.exec(code)) !== null) {
+      newCode += code.substring(lastIndex, arr.index ) + tokens.shift();
+      lastIndex = arr.index + arr[0].length;
+    }
+
+    newCode += code.substr(lastIndex);
+
+    return newCode;
+  }
+}]);
+
+
+var hljsDir, interpolateDirFactory, languageDirFactory, sourceDirFactory, includeDirFactory;
+
+/**
+ * hljs directive
+ */
+hljsDir = /*@ngInject*/ ["$parse", function ($parse) {
+  return {
+    restrict: 'EA',
+    controller: 'HljsCtrl',
+    compile: function(tElm, tAttrs, transclude) {
+      // get static code
+      // strip the starting "new line" character
+      var staticHTML = tElm[0].innerHTML.replace(/^(\r\n|\r|\n)/, ''),
+          staticText = tElm[0].textContent.replace(/^(\r\n|\r|\n)/, '');
+
+      // put template
+      tElm.html('<pre><code class="hljs"></code></pre>');
+
+      return function postLink(scope, iElm, iAttrs, ctrl) {
+        var escapeCheck;
+
+        var attrs = attrGetter(iAttrs);
+
+        if (angular.isDefined(attrs('escape'))) {
+          escapeCheck = $parse(attrs('escape'));
+        } else if (angular.isDefined(attrs('no-escape'))) {
+          escapeCheck = $parse('false');
+        }
+
+        ctrl.init(iElm.find('code'));
+
+        if (attrs('onhighlight')) {
+          ctrl.highlightCallback(function () {
+            scope.$eval(attrs('onhighlight'));
+          });
+        }
+
+        if ((staticHTML || staticText) && shouldHighlightStatics(iAttrs)) {
+
+          var code;
+
+          // Auto-escape check
+          // default to "true"
+          if (escapeCheck && !escapeCheck(scope)) {
+            code = staticText;
+          }
+          else {
+            code = staticHTML;
+          }
+
+          ctrl.highlight(code);
+        }
+
+        scope.$on('$destroy', function () {
+          ctrl.release();
+        });
+      };
+    }
+  };
+}];
+
+/**
+ * language directive
+ */
+languageDirFactory = function (dirName) {
+  return /*@ngInject*/ function () {
+    return {
+      require: '?hljs',
+      restrict: 'A',
+      link: function (scope, iElm, iAttrs, ctrl) {
+        if (!ctrl) {
+          return;
+        }      
+        iAttrs.$observe(dirName, function (lang) {
+          if (angular.isDefined(lang)) {
+            ctrl.setLanguage(lang);
+          }
+        });
+      }
+    };
+  };
+};
+
+/**
+ * interpolate directive
+ */
+interpolateDirFactory = function (dirName) {
+  /*@ngInject*/
+  return function () {
+    return {
+      require: '?hljs',
+      restrict: 'A',
+      link: function (scope, iElm, iAttrs, ctrl) {
+        if (!ctrl) {
+          return;
+        }
+        scope.$watch(iAttrs[dirName], function (newVal, oldVal) {
+          if (newVal || newVal !== oldVal) {
+            ctrl.setInterpolateScope(newVal ? scope : null);
+          }
+        });
+      }
+    };
+  };
+};
+
+/**
+ * source directive
+ */
+sourceDirFactory = function (dirName) {
+  return /*@ngInject*/ function () {
+    return {
+      require: '?hljs',
+      restrict: 'A',
+      link: function(scope, iElm, iAttrs, ctrl) {
+        if (!ctrl) {
+          return;
+        }
+
+        scope.$watch(iAttrs[dirName], function (newCode, oldCode) {
+          if (newCode) {
+            ctrl.highlight(newCode);
+          }
+          else {
+            ctrl.clear();
+          }
+        });
+      }
+    };
+  };
+};
+
+/**
+ * include directive
+ */
+includeDirFactory = function (dirName) {
+  return /*@ngInject*/ ["$http", "$templateCache", "$q", function ($http, $templateCache, $q) {
+    return {
+      require: '?hljs',
+      restrict: 'A',
+      compile: function(tElm, tAttrs, transclude) {
+        var srcExpr = tAttrs[dirName];
+
+        return function postLink(scope, iElm, iAttrs, ctrl) {
+          var changeCounter = 0;
+
+          if (!ctrl) {
+            return;
+          }
+
+          scope.$watch(srcExpr, function (src) {
+            var thisChangeId = ++changeCounter;
+
+            if (src && angular.isString(src)) {
+              var templateCachePromise, dfd;
+
+              templateCachePromise = $templateCache.get(src);
+              if (!templateCachePromise) {
+                dfd = $q.defer();
+                $http.get(src, {
+                  cache: $templateCache,
+                  transformResponse: function(data, headersGetter) {
+                    // Return the raw string, so $http doesn't parse it
+                    // if it's json.
+                    return data;
+                  }
+                }).then(function (code) {
+                  if (thisChangeId !== changeCounter) {
+                    return;
+                  }
+                  dfd.resolve(code);
+                }).catch(function() {
+                  if (thisChangeId === changeCounter) {
+                    ctrl.clear();
+                  }
+                  dfd.resolve();
+                });
+                templateCachePromise = dfd.promise;
+              }
+
+              $q.when(templateCachePromise)
+              .then(function (code) {
+                if (!code) {
+                  return;
+                }
+
+                // $templateCache from $http
+                if (angular.isArray(code)) {
+                  // 1.1.5
+                  code = code[1];
+                }
+                else if (angular.isObject(code)) {
+                  // 1.0.7
+                  code = code.data;
+                }
+
+                code = code.replace(/^(\r\n|\r|\n)/, '');
+                ctrl.highlight(code);
+              });
+            }
+            else {
+              ctrl.clear();
+            }
+          });
+        };
+      }
+    };
+  }];
+};
+
+/**
+ * Add directives
+ */
+(function (module) {
+  module.directive('hljs', hljsDir);
+
+  angular.forEach(['interpolate', 'hljsInterpolate', 'compile', 'hljsCompile'], function (name) {
+    module.directive(name, interpolateDirFactory(name));
+  });
+
+  angular.forEach(['language', 'hljsLanguage'], function (name) {
+    module.directive(name, languageDirFactory(name));
+  });
+
+  angular.forEach(['source', 'hljsSource'], function (name) {
+    module.directive(name, sourceDirFactory(name));
+  });
+
+  angular.forEach(['include', 'hljsInclude'], function (name) {
+    module.directive(name, includeDirFactory(name));
+  });
+})(ngModule);
+
+
+  return "hljs";
+}));
 /*!
  * iconic.js v0.4.0 - The Iconic JavaScript library
  * Copyright (c) 2014 Waybury - http://useiconic.com
@@ -46247,6 +47586,268 @@ angular.module('markdown', [])
 (function() {
   'use strict';
 
+  angular.module('foundation.interchange', ['foundation.core', 'foundation.mediaquery'])
+    .directive('zfInterchange', zfInterchange)
+  ;
+
+  zfInterchange.$inject = [ '$compile', '$http', '$templateCache', 'FoundationApi', 'FoundationMQ'];
+
+  function zfInterchange($compile, $http, $templateCache, foundationApi, foundationMQ) {
+
+    var directive = {
+      restrict: 'EA',
+      transclude: 'element',
+      scope: {
+        position: '@'
+      },
+      replace: true,
+      template: '<div></div>',
+      link: link
+    };
+
+    return directive;
+
+    function link(scope, element, attrs, ctrl, transclude) {
+      var childScope, current, scenarios, innerTemplates;
+
+      var globalQueries = foundationMQ.getMediaQueries();
+
+      //setup
+      foundationApi.subscribe('resize', function(msg) {
+        transclude(function(clone, newScope) {
+          if(!scenarios || !innerTemplates) {
+            collectInformation(clone);
+          }
+
+          var ruleMatches = foundationMQ.match(scenarios);
+          var scenario = ruleMatches.length === 0 ? null : scenarios[ruleMatches[0].ind];
+
+          //this could use some love
+          if(scenario && checkScenario(scenario)) {
+            var compiled;
+
+            if(childScope) {
+              childScope.$destroy();
+              childScope = null;
+            }
+
+            if(typeof scenario.templ !== 'undefined') {
+              childScope = newScope;
+
+              //temp container
+              var tmp = document.createElement('div');
+              tmp.appendChild(innerTemplates[scenario.templ][0]);
+
+              element.html(tmp.innerHTML);
+              $compile(element.contents())(childScope);
+              current = scenario;
+            } else {
+              var loader = templateLoader(scenario.src);
+              loader.success(function(html) {
+                childScope = newScope;
+                element.html(html);
+              }).then(function(){
+                $compile(element.contents())(childScope);
+                current = scenario;
+              });
+            }
+          }
+        });
+
+      });
+
+      //init
+      foundationApi.publish('resize', 'initial resize');
+
+      function templateLoader(templateUrl) {
+        return $http.get(templateUrl, {cache: $templateCache});
+      }
+
+      function collectInformation(el) {
+        var data = foundationMQ.collectScenariosFromElement(el);
+
+        scenarios = data.scenarios;
+        innerTemplates = data.templates;
+      }
+
+      function checkScenario(scenario) {
+        return !current || current !== scenario;
+      }
+    }
+  }
+
+  angular.module('foundation.interchange')
+  /*
+   * Final directive to perform media queries, other directives set up this one
+   * (See: http://stackoverflow.com/questions/19224028/add-directives-from-directive-in-angularjs)
+   */
+    .directive('zfQuery', zfQuery)
+  /*
+   * zf-if / zf-show / zf-hide
+   */
+    .directive('zfIf', zfQueryDirective('ng-if', 'zf-if'))
+    .directive('zfShow', zfQueryDirective('ng-show', 'zf-show'))
+    .directive('zfHide', zfQueryDirective('ng-hide', 'zf-hide'))
+  ;
+
+  /*
+   * This directive will configure ng-if/ng-show/ng-hide and zf-query directives and then recompile the element
+   */
+  function zfQueryDirective(angularDirective, directiveName) {
+    return ['$compile', 'FoundationApi', function ($compile, foundationApi) {
+      // create unique scope property for media query result, must be unique to avoid collision with other zf-query directives
+      // property set upon element compilation or else all similar directives (i.e. zf-if-*/zf-show-*/zf-hide-*) will get the same value
+      var queryResult;
+
+      return {
+        priority: 1000, // must compile directive before any others
+        terminal: true, // don't compile any other directive after this
+                        // we'll fix this with a recompile
+        restrict: 'A',
+        compile: compile
+      };
+
+      // From here onward, scope[queryResult] refers to the result of running the provided query
+      function compile(element, attrs) {
+        var previousParam;
+
+        // set unique property
+        queryResult = (directiveName + foundationApi.generateUuid()).replace(/-/g,'');
+
+        // set default configuration
+        element.attr('zf-query-not', false);
+        element.attr('zf-query-only', false);
+        element.attr('zf-query-or-smaller', false);
+        element.attr('zf-query-scope-prop', queryResult);
+
+        // parse directive attribute for query parameters
+        element.attr(directiveName).split(' ').forEach(function(param) {
+          if (param) {
+            // add zf-query directive and configuration attributes
+            switch (param) {
+              case "not":
+                element.attr('zf-query-not', true);
+                element.attr('zf-query-only', true);
+                break;
+              case "only":
+                element.attr('zf-query-only', true);
+                break;
+              case "or":
+                break;
+              case "smaller":
+                // allow usage of smaller keyword if preceeded by 'or' keyword
+                if (previousParam === "or") {
+                  element.attr('zf-query-or-smaller', true);
+                }
+                break;
+              default:
+                element.attr('zf-query', param);
+                break;
+            }
+
+            previousParam = param;
+          }
+        });
+
+        // add/update angular directive
+        if (!element.attr(angularDirective)) {
+          element.attr(angularDirective, queryResult);
+        } else {
+          element.attr(angularDirective, queryResult + ' && (' + element.attr(angularDirective) + ')');
+        }
+
+        // remove directive from current element to avoid infinite recompile
+        element.removeAttr(directiveName);
+        element.removeAttr('data-' + directiveName);
+
+        return {
+          pre: function (scope, element, attrs) {
+          },
+          post: function (scope, element, attrs) {
+            // recompile
+            $compile(element)(scope);
+          }
+        };
+      }
+    }];
+  }
+
+  zfQuery.$inject = ['FoundationApi', 'FoundationMQ'];
+  function zfQuery(foundationApi, foundationMQ) {
+    return {
+      priority: 601, // must compile before ng-if (600)
+      restrict: 'A',
+      compile: function compile(element, attrs) {
+        return compileWrapper(attrs['zfQueryScopeProp'],
+                              attrs['zfQuery'],
+                              attrs['zfQueryOnly'] === "true",
+                              attrs['zfQueryNot'] === "true",
+                              attrs['zfQueryOrSmaller'] === "true");
+      }
+    };
+
+    // parameters will be populated with values provided from zf-query-* attributes
+    function compileWrapper(queryResult, namedQuery, queryOnly, queryNot, queryOrSmaller) {
+      // set defaults
+      queryOnly = queryOnly || false;
+      queryNot = queryNot || false;
+
+      return {
+        pre: preLink,
+        post: postLink
+      };
+
+      // From here onward, scope[queryResult] refers to the result of running the provided query
+      function preLink(scope, element, attrs) {
+        // initially set media query result to false
+        scope[queryResult] = false;
+      }
+
+      function postLink(scope, element, attrs) {
+        // subscribe for resize events
+        foundationApi.subscribe('resize', function() {
+          var orignalVisibilty = scope[queryResult];
+          runQuery();
+          if (orignalVisibilty != scope[queryResult]) {
+            // digest if visibility changed
+            scope.$digest();
+          }
+        });
+
+        scope.$on("$destroy", function() {
+          foundationApi.unsubscribe('resize');
+        });
+
+        // run first media query check
+        runQuery();
+
+        function runQuery() {
+          if (!queryOnly) {
+            if (!queryOrSmaller) {
+              // Check if matches media or LARGER
+              scope[queryResult] = foundationMQ.matchesMedia(namedQuery);
+            } else {
+              // Check if matches media or SMALLER
+              scope[queryResult] = foundationMQ.matchesMediaOrSmaller(namedQuery);
+            }
+          } else {
+            if (!queryNot) {
+              // Check that media ONLY matches named query and nothing else
+              scope[queryResult] = foundationMQ.matchesMediaOnly(namedQuery);
+            } else {
+              // Check that media does NOT match named query
+              scope[queryResult] = !foundationMQ.matchesMediaOnly(namedQuery);
+            }
+          }
+        }
+      }
+    }
+  }
+})();
+
+(function() {
+  'use strict';
+
   angular.module('foundation.modal', ['foundation.core'])
     .directive('zfModal', modalDirective)
     .factory('ModalFactory', ModalFactory)
@@ -46567,268 +48168,6 @@ angular.module('markdown', [])
 
   }
 
-})();
-
-(function() {
-  'use strict';
-
-  angular.module('foundation.interchange', ['foundation.core', 'foundation.mediaquery'])
-    .directive('zfInterchange', zfInterchange)
-  ;
-
-  zfInterchange.$inject = [ '$compile', '$http', '$templateCache', 'FoundationApi', 'FoundationMQ'];
-
-  function zfInterchange($compile, $http, $templateCache, foundationApi, foundationMQ) {
-
-    var directive = {
-      restrict: 'EA',
-      transclude: 'element',
-      scope: {
-        position: '@'
-      },
-      replace: true,
-      template: '<div></div>',
-      link: link
-    };
-
-    return directive;
-
-    function link(scope, element, attrs, ctrl, transclude) {
-      var childScope, current, scenarios, innerTemplates;
-
-      var globalQueries = foundationMQ.getMediaQueries();
-
-      //setup
-      foundationApi.subscribe('resize', function(msg) {
-        transclude(function(clone, newScope) {
-          if(!scenarios || !innerTemplates) {
-            collectInformation(clone);
-          }
-
-          var ruleMatches = foundationMQ.match(scenarios);
-          var scenario = ruleMatches.length === 0 ? null : scenarios[ruleMatches[0].ind];
-
-          //this could use some love
-          if(scenario && checkScenario(scenario)) {
-            var compiled;
-
-            if(childScope) {
-              childScope.$destroy();
-              childScope = null;
-            }
-
-            if(typeof scenario.templ !== 'undefined') {
-              childScope = newScope;
-
-              //temp container
-              var tmp = document.createElement('div');
-              tmp.appendChild(innerTemplates[scenario.templ][0]);
-
-              element.html(tmp.innerHTML);
-              $compile(element.contents())(childScope);
-              current = scenario;
-            } else {
-              var loader = templateLoader(scenario.src);
-              loader.success(function(html) {
-                childScope = newScope;
-                element.html(html);
-              }).then(function(){
-                $compile(element.contents())(childScope);
-                current = scenario;
-              });
-            }
-          }
-        });
-
-      });
-
-      //init
-      foundationApi.publish('resize', 'initial resize');
-
-      function templateLoader(templateUrl) {
-        return $http.get(templateUrl, {cache: $templateCache});
-      }
-
-      function collectInformation(el) {
-        var data = foundationMQ.collectScenariosFromElement(el);
-
-        scenarios = data.scenarios;
-        innerTemplates = data.templates;
-      }
-
-      function checkScenario(scenario) {
-        return !current || current !== scenario;
-      }
-    }
-  }
-
-  angular.module('foundation.interchange')
-  /*
-   * Final directive to perform media queries, other directives set up this one
-   * (See: http://stackoverflow.com/questions/19224028/add-directives-from-directive-in-angularjs)
-   */
-    .directive('zfQuery', zfQuery)
-  /*
-   * zf-if / zf-show / zf-hide
-   */
-    .directive('zfIf', zfQueryDirective('ng-if', 'zf-if'))
-    .directive('zfShow', zfQueryDirective('ng-show', 'zf-show'))
-    .directive('zfHide', zfQueryDirective('ng-hide', 'zf-hide'))
-  ;
-
-  /*
-   * This directive will configure ng-if/ng-show/ng-hide and zf-query directives and then recompile the element
-   */
-  function zfQueryDirective(angularDirective, directiveName) {
-    return ['$compile', 'FoundationApi', function ($compile, foundationApi) {
-      // create unique scope property for media query result, must be unique to avoid collision with other zf-query directives
-      // property set upon element compilation or else all similar directives (i.e. zf-if-*/zf-show-*/zf-hide-*) will get the same value
-      var queryResult;
-
-      return {
-        priority: 1000, // must compile directive before any others
-        terminal: true, // don't compile any other directive after this
-                        // we'll fix this with a recompile
-        restrict: 'A',
-        compile: compile
-      };
-
-      // From here onward, scope[queryResult] refers to the result of running the provided query
-      function compile(element, attrs) {
-        var previousParam;
-
-        // set unique property
-        queryResult = (directiveName + foundationApi.generateUuid()).replace(/-/g,'');
-
-        // set default configuration
-        element.attr('zf-query-not', false);
-        element.attr('zf-query-only', false);
-        element.attr('zf-query-or-smaller', false);
-        element.attr('zf-query-scope-prop', queryResult);
-
-        // parse directive attribute for query parameters
-        element.attr(directiveName).split(' ').forEach(function(param) {
-          if (param) {
-            // add zf-query directive and configuration attributes
-            switch (param) {
-              case "not":
-                element.attr('zf-query-not', true);
-                element.attr('zf-query-only', true);
-                break;
-              case "only":
-                element.attr('zf-query-only', true);
-                break;
-              case "or":
-                break;
-              case "smaller":
-                // allow usage of smaller keyword if preceeded by 'or' keyword
-                if (previousParam === "or") {
-                  element.attr('zf-query-or-smaller', true);
-                }
-                break;
-              default:
-                element.attr('zf-query', param);
-                break;
-            }
-
-            previousParam = param;
-          }
-        });
-
-        // add/update angular directive
-        if (!element.attr(angularDirective)) {
-          element.attr(angularDirective, queryResult);
-        } else {
-          element.attr(angularDirective, queryResult + ' && (' + element.attr(angularDirective) + ')');
-        }
-
-        // remove directive from current element to avoid infinite recompile
-        element.removeAttr(directiveName);
-        element.removeAttr('data-' + directiveName);
-
-        return {
-          pre: function (scope, element, attrs) {
-          },
-          post: function (scope, element, attrs) {
-            // recompile
-            $compile(element)(scope);
-          }
-        };
-      }
-    }];
-  }
-
-  zfQuery.$inject = ['FoundationApi', 'FoundationMQ'];
-  function zfQuery(foundationApi, foundationMQ) {
-    return {
-      priority: 601, // must compile before ng-if (600)
-      restrict: 'A',
-      compile: function compile(element, attrs) {
-        return compileWrapper(attrs['zfQueryScopeProp'],
-                              attrs['zfQuery'],
-                              attrs['zfQueryOnly'] === "true",
-                              attrs['zfQueryNot'] === "true",
-                              attrs['zfQueryOrSmaller'] === "true");
-      }
-    };
-
-    // parameters will be populated with values provided from zf-query-* attributes
-    function compileWrapper(queryResult, namedQuery, queryOnly, queryNot, queryOrSmaller) {
-      // set defaults
-      queryOnly = queryOnly || false;
-      queryNot = queryNot || false;
-
-      return {
-        pre: preLink,
-        post: postLink
-      };
-
-      // From here onward, scope[queryResult] refers to the result of running the provided query
-      function preLink(scope, element, attrs) {
-        // initially set media query result to false
-        scope[queryResult] = false;
-      }
-
-      function postLink(scope, element, attrs) {
-        // subscribe for resize events
-        foundationApi.subscribe('resize', function() {
-          var orignalVisibilty = scope[queryResult];
-          runQuery();
-          if (orignalVisibilty != scope[queryResult]) {
-            // digest if visibility changed
-            scope.$digest();
-          }
-        });
-
-        scope.$on("$destroy", function() {
-          foundationApi.unsubscribe('resize');
-        });
-
-        // run first media query check
-        runQuery();
-
-        function runQuery() {
-          if (!queryOnly) {
-            if (!queryOrSmaller) {
-              // Check if matches media or LARGER
-              scope[queryResult] = foundationMQ.matchesMedia(namedQuery);
-            } else {
-              // Check if matches media or SMALLER
-              scope[queryResult] = foundationMQ.matchesMediaOrSmaller(namedQuery);
-            }
-          } else {
-            if (!queryNot) {
-              // Check that media ONLY matches named query and nothing else
-              scope[queryResult] = foundationMQ.matchesMediaOnly(namedQuery);
-            } else {
-              // Check that media does NOT match named query
-              scope[queryResult] = !foundationMQ.matchesMediaOnly(namedQuery);
-            }
-          }
-        }
-      }
-    }
-  }
 })();
 
 (function() {
@@ -47261,6 +48600,109 @@ angular.module('markdown', [])
 (function() {
   'use strict';
 
+  angular.module('foundation.offcanvas', ['foundation.core'])
+    .directive('zfOffcanvas', zfOffcanvas)
+    .service('FoundationOffcanvas', FoundationOffcanvas)
+  ;
+
+  FoundationOffcanvas.$inject = ['FoundationApi'];
+
+  function FoundationOffcanvas(foundationApi) {
+    var service    = {};
+
+    service.activate = activate;
+    service.deactivate = deactivate;
+
+    return service;
+
+    //target should be element ID
+    function activate(target) {
+      foundationApi.publish(target, 'show');
+    }
+
+    //target should be element ID
+    function deactivate(target) {
+      foundationApi.publish(target, 'hide');
+    }
+
+    function toggle(target) {
+      foundationApi.publish(target, 'toggle');
+    }
+  }
+
+  zfOffcanvas.$inject = ['FoundationApi'];
+
+  function zfOffcanvas(foundationApi) {
+    var directive = {
+      restrict: 'EA',
+      templateUrl: 'components/offcanvas/offcanvas.html',
+      transclude: true,
+      scope: {
+        position: '@'
+      },
+      replace: true,
+      compile: compile
+    };
+
+    return directive;
+
+    function compile(tElement, tAttrs, transclude) {
+      var type = 'offcanvas';
+
+      return {
+        pre: preLink,
+        post: postLink
+      };
+
+      function preLink(scope, iElement, iAttrs, controller) {
+        iAttrs.$set('zf-closable', type);
+        document.body.classList.add('has-off-canvas');
+      }
+
+      function postLink(scope, element, attrs) {
+        scope.position = scope.position || 'left';
+
+        scope.active = false;
+        //setup
+        foundationApi.subscribe(attrs.id, function(msg) {
+          if(msg === 'show' || msg === 'open') {
+            scope.show();
+          } else if (msg === 'close' || msg === 'hide') {
+            scope.hide();
+          } else if (msg === 'toggle') {
+            scope.toggle();
+          }
+
+          if (!scope.$root.$$phase) {
+            scope.$apply();
+          }
+
+          return;
+        });
+
+        scope.hide = function() {
+          scope.active = false;
+          return;
+        };
+
+        scope.show = function() {
+          scope.active = true;
+          return;
+        };
+
+        scope.toggle = function() {
+          scope.active = !scope.active;
+          return;
+        };
+      }
+    }
+  }
+
+})();
+
+(function() {
+  'use strict';
+
   angular.module('foundation.panel', ['foundation.core'])
     .directive('zfPanel', zfPanel)
     .service('FoundationPanel', FoundationPanel)
@@ -47419,109 +48861,6 @@ angular.module('markdown', [])
             animate(element, scope.active, animationIn, animationOut);
           }
         });
-      }
-    }
-  }
-
-})();
-
-(function() {
-  'use strict';
-
-  angular.module('foundation.offcanvas', ['foundation.core'])
-    .directive('zfOffcanvas', zfOffcanvas)
-    .service('FoundationOffcanvas', FoundationOffcanvas)
-  ;
-
-  FoundationOffcanvas.$inject = ['FoundationApi'];
-
-  function FoundationOffcanvas(foundationApi) {
-    var service    = {};
-
-    service.activate = activate;
-    service.deactivate = deactivate;
-
-    return service;
-
-    //target should be element ID
-    function activate(target) {
-      foundationApi.publish(target, 'show');
-    }
-
-    //target should be element ID
-    function deactivate(target) {
-      foundationApi.publish(target, 'hide');
-    }
-
-    function toggle(target) {
-      foundationApi.publish(target, 'toggle');
-    }
-  }
-
-  zfOffcanvas.$inject = ['FoundationApi'];
-
-  function zfOffcanvas(foundationApi) {
-    var directive = {
-      restrict: 'EA',
-      templateUrl: 'components/offcanvas/offcanvas.html',
-      transclude: true,
-      scope: {
-        position: '@'
-      },
-      replace: true,
-      compile: compile
-    };
-
-    return directive;
-
-    function compile(tElement, tAttrs, transclude) {
-      var type = 'offcanvas';
-
-      return {
-        pre: preLink,
-        post: postLink
-      };
-
-      function preLink(scope, iElement, iAttrs, controller) {
-        iAttrs.$set('zf-closable', type);
-        document.body.classList.add('has-off-canvas');
-      }
-
-      function postLink(scope, element, attrs) {
-        scope.position = scope.position || 'left';
-
-        scope.active = false;
-        //setup
-        foundationApi.subscribe(attrs.id, function(msg) {
-          if(msg === 'show' || msg === 'open') {
-            scope.show();
-          } else if (msg === 'close' || msg === 'hide') {
-            scope.hide();
-          } else if (msg === 'toggle') {
-            scope.toggle();
-          }
-
-          if (!scope.$root.$$phase) {
-            scope.$apply();
-          }
-
-          return;
-        });
-
-        scope.hide = function() {
-          scope.active = false;
-          return;
-        };
-
-        scope.show = function() {
-          scope.active = true;
-          return;
-        };
-
-        scope.toggle = function() {
-          scope.active = !scope.active;
-          return;
-        };
       }
     }
   }

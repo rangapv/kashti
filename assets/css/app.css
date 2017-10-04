@@ -8891,11 +8891,14 @@ blockquote p {
     float: left;
     margin: -0.3rem 1rem 0 -0.25rem;
     max-width: 1.5rem; }
-  .build-status.build-success {
-    color: #70AE29; }
-  .build-status.build-failed {
+  .build-status.build-success,
+  .build-status .success {
+    Color: #70AE29; }
+  .build-status.build-failed,
+  .build-status .failed {
     color: #D10015; }
-  .build-status.build-active {
+  .build-status.build-active,
+  .build-status .active {
     color: #37B0E7; }
 
 body {
@@ -9740,17 +9743,6 @@ footer {
     @media only screen and (min-width: 90em) {
       .template-build .grid-container {
         max-width: 65rem !important; } }
-    .template-build .grid-container:after {
-      background: linear-gradient(5deg, #d8dbe8 0%, #e9ecf2 100%);
-      display: block;
-      content: " ";
-      top: 0;
-      left: -2rem;
-      width: 110%;
-      height: 150px;
-      position: absolute;
-      z-index: 100;
-      transition: all 0.3s ease-in-out; }
     .template-build .grid-container .button {
       position: absolute;
       bottom: -1rem;
@@ -9764,11 +9756,33 @@ footer {
       position: absolute;
       bottom: 0.5rem; }
 
+.build-chart-0 {
+  height: 4.5rem; }
+  .build-chart-0 .build-chart-bg {
+    height: 210px !important; }
+  .build-chart-0 .build-chart {
+    display: none; }
+
+.build-chart-1 {
+  height: 2.25rem !important; }
+  .build-chart-1 .build-chart-bg {
+    height: 180px !important; }
+  .build-chart-1.build-chart:before, .build-chart-1.build-chart:after {
+    height: 50px !important; }
+
+.build-chart-2 {
+  height: 4.5rem !important; }
+  .build-chart-2 .build-chart-bg {
+    height: 210px !important; }
+  .build-chart-2 .build-chart:before, .build-chart-2 .build-chart:after {
+    height: 80px !important; }
+
 .build-header-wrap {
   position: relative;
   z-index: 200;
   padding-bottom: 0.825rem;
-  padding-left: 2rem; }
+  padding-left: 2rem;
+  overflow: visible; }
 
 .build-header {
   padding: 1.25rem 1.75rem;
@@ -9805,6 +9819,18 @@ footer {
   .build-header .build-chart {
     height: 13.5rem;
     position: relative; }
+    .build-header .build-chart .build-chart-bg {
+      background: linear-gradient(5deg, #d8dbe8 0%, #e9ecf2 100%);
+      display: block;
+      content: " ";
+      top: -140px;
+      left: -100%;
+      right: -100%;
+      width: 1000%;
+      height: 150px;
+      position: absolute;
+      z-index: -100;
+      transition: all 0.3s ease-in-out; }
     .build-header .build-chart:before, .build-header .build-chart:after {
       display: inline-block;
       width: 2px;
@@ -9821,16 +9847,13 @@ footer {
       right: 1rem; }
     .build-header .build-chart .task {
       position: absolute;
-      display: inline-block;
-      height: 1.5rem;
-      background: #37B0E7;
-      min-width: 2%;
-      z-index: 350;
+      display: block;
+      z-index: 550;
       overflow: visible;
-      padding: 0.2rem 0.5rem;
       font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
       font-size: 0.667rem;
       line-height: 1.636;
+      min-width: 2%;
       color: white;
       border-radius: 2px 3px 2px 3px;
       box-shadow: 0 1px 3px rgba(255, 255, 255, 0.5);
@@ -9840,28 +9863,38 @@ footer {
       .build-header .build-chart .task .icon {
         padding-left: 0.25rem; }
       .build-header .build-chart .task a {
-        color: white; }
+        color: white;
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        padding: 0.2rem 0.5rem;
+        z-index: 110;
+        height: 1.5rem;
+        background: #37B0E7; }
       .build-header .build-chart .task span {
         display: inline-block;
         width: 100%;
         overflow-x: hidden;
         white-space: nowrap; }
-    .build-header .build-chart em {
-      display: inline-block;
-      width: 100%;
-      position: relative;
-      height: 2px;
-      margin-top: 0.7rem;
-      margin-bottom: 1rem;
-      content: " ";
-      background: #F4F5F7;
-      left: 0;
-      right: 0;
-      z-index: -2; }
+      .build-header .build-chart .task:after {
+        display: inline-block;
+        content: " ";
+        width: 10000%;
+        position: absolute;
+        height: 2px;
+        top: 12px;
+        content: " ";
+        background: #F4F5F7;
+        left: -1000%;
+        right: -1000%;
+        z-index: -20; }
     .build-header .build-chart .task-0 {
       top: 0;
       width: 4%;
-      left: 0%; }
+      left: 0%;
+      z-index: 1101; }
+      .build-header .build-chart .task-0:after {
+        display: none; }
     .build-header .build-chart .task-1 {
       top: 0;
       width: 15%;
@@ -9889,12 +9922,22 @@ footer {
       width: 15%; }
 
 .job-list h4 {
-  margin: 0 2rem;
+  margin: 0 1.125rem 2rem;
   font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
   font-weight: bold;
   letter-spacing: 0.025em;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   color: #93B7BE; }
+  .job-list h4 .job-count {
+    border-radius: 50% 50% 50% 50%;
+    background: rgba(255, 255, 255, 0.5);
+    width: 2rem;
+    line-height: 1.5;
+    text-align: center;
+    display: inline-block;
+    padding: 0 0.5rem;
+    margin-right: 0.25rem;
+    color: #2D3047; }
 
 ul.build-details {
   list-style: none;
@@ -9911,23 +9954,6 @@ ul.build-details {
     border-radius: 4px 3px 4px 3px;
     margin-left: 1rem;
     color: #373b57; }
-    ul.build-details li code,
-    ul.build-details .accordion-item code {
-      border: none;
-      font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
-      background: #E1E6EE;
-      color: #2D3047;
-      padding-left: 0.25rem;
-      padding-right: 0.25rem;
-      line-height: 2;
-      margin-left: 0.5rem;
-      margin-right: 0.5rem;
-      border-radius: 2px 3px 2px 3px; }
-      ul.build-details li code img,
-      ul.build-details .accordion-item code img {
-        border-radius: 50% 50% 50% 50%;
-        margin-left: -1rem;
-        margin-right: -0.5 rem; }
     ul.build-details li.trigger, ul.build-details li:first-child, ul.build-details li:last-child,
     ul.build-details .accordion-item.trigger,
     ul.build-details .accordion-item:first-child,
@@ -9967,26 +9993,32 @@ ul.build-details {
       font-weight: bold;
       letter-spacing: 0.025em;
       font-size: 1.5rem;
-      padding: 0.333em 0 2em; }
+      padding: 0.333em 1.5rem 0 0;
+      float: left;
+      margin-bottom: 1.125rem; }
     ul.build-details li.job small {
       font-size: 0.667rem;
       font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
       color: #93B7BE;
-      background: #fbfcfc;
+      background: white;
       border-radius: 6px;
       padding: 0 0.5rem;
       margin-top: 0;
       margin-left: -0.5rem; }
+      ul.build-details li.job small:last-child {
+        margin-top: 1rem; }
     ul.build-details li.job dl {
-      margin-left: 200px;
-      margin-top: -32px; }
+      margin-left: 0px;
+      margin-top: -32px;
+      clear: both;
+      line-height: 1.3; }
       ul.build-details li.job dl dt,
       ul.build-details li.job dl dd {
         display: inline-block;
         color: #93B7BE;
         font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
         font-size: 0.925rem;
-        line-height: 1;
+        line-height: 0.9;
         margin: 0;
         padding: 0; }
       ul.build-details li.job dl dt {
@@ -9995,18 +10027,87 @@ ul.build-details {
       ul.build-details li.job dl dd {
         width: 70%; }
     ul.build-details li.job .job-response {
-      position: absolute;
-      font-size: 0.925rem;
-      left: 0.5rem;
-      top: 5.25rem;
+      font-size: 0.75rem;
+      float: left;
       background: #F4F5F7;
-      padding: 0.25rem 0.65rem;
-      border-radius: 3rem; }
+      margin: 0.925rem 0 0 0;
+      padding: 0.25rem 0.75rem 0.25rem 36px;
+      border-radius: 3rem;
+      line-height: 1.75;
+      position: relative; }
       ul.build-details li.job .job-response i,
       ul.build-details li.job .job-response img {
-        max-height: 1.5rem; }
+        max-height: 0.75rem;
+        font-size: 1.125rem;
+        position: absolute;
+        left: 0.667rem;
+        top: 4px;
+        line-height: 1.25;
+        margin: 0 0.5rem 0 0; }
+      ul.build-details li.job .job-response img {
+        width: 18px;
+        max-height: 18px; }
+  ul.build-details .log-wrap {
+    position: relative;
+    overflow: hidden; }
+    ul.build-details .log-wrap a {
+      position: absolute;
+      bottom: -3em;
+      left: 1%;
+      width: 98%;
+      opacity: 0;
+      z-index: -10;
+      background: #4b5076;
+      color: #FBFBFD;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.75rem;
+      line-height: 2;
+      border-radius: 4px 4px 4px 4px;
+      transition: all 0.3s ease-in-out; }
+      ul.build-details .log-wrap a i {
+        font-size: 0.75em;
+        padding-right: 0.333rem; }
+    ul.build-details .log-wrap:hover a {
+      z-index: 500;
+      bottom: 0.5rem;
+      opacity: 1; }
+    ul.build-details .log-wrap.log-expand .log-inner,
+    ul.build-details .log-wrap.log-expand .log-inner code {
+      height: auto; }
+  ul.build-details .log-inner {
+    background: #373b57;
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    border-radius: 3px;
+    height: 135px;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease-in-out; }
+    ul.build-details .log-inner code,
+    ul.build-details .log-inner .hljs,
+    ul.build-details .log-inner pre {
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      transition: all 0.3s ease-in-out; }
+    ul.build-details .log-inner code {
+      border: none;
+      font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+      color: white;
+      line-height: 1.5;
+      font-size: 0.825rem;
+      display: table-cell;
+      height: 135px;
+      vertical-align: bottom;
+      padding-bottom: 3em !important; }
   ul.build-details li.active {
     border-left: 6px solid #37B0E7; }
+  ul.build-details li.success {
+    border-left: 6px solid #70AE29; }
+  ul.build-details li.failed {
+    border-left: 6px solid #D10015; }
   ul.build-details li.zf-accordion-wrap {
     background: none;
     box-shadow: none;
@@ -10051,6 +10152,60 @@ ul.build-details {
             display: none; }
           ul.build-details .accordion .accordion-item .accordion-content .accordion .accordion-item.is-active .accordion-content {
             display: block; }
+
+.hljs-comment,
+.hljs-quote {
+  color: #7285b7; }
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+  color: #ff9da4; }
+
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+  color: #ffc58f; }
+
+.hljs-attribute {
+  color: #ffeead; }
+
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+  color: #d1f1a9; }
+
+.hljs-title,
+.hljs-section {
+  color: #bbdaff; }
+
+.hljs-keyword,
+.hljs-selector-tag {
+  color: #ebbbff; }
+
+.hljs {
+  display: block;
+  overflow-x: auto;
+  background: #002451;
+  color: white;
+  padding: 0.5em; }
+
+.hljs-emphasis {
+  font-style: italic; }
+
+.hljs-strong {
+  font-weight: bold; }
 
 .gantt {
   line-height: normal; }
