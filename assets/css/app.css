@@ -8917,13 +8917,17 @@ h1, h2, h3 {
 .content-wrap {
   padding: 0; }
 
+.view-wrap {
+  width: 100%;
+  height: 100%; }
+
 #main {
-  padding-top: 1.5rem;
   min-height: 88vh;
   overflow-x: hidden;
   transition: all 0.25s ease-in-out; }
   #main .grid-container {
-    max-width: 65rem; }
+    max-width: 65rem;
+    padding-top: 1.5rem; }
   #main.ng-animate {
     min-height: 100vh; }
   #main.ng-enter {
@@ -9106,7 +9110,7 @@ pre {
       #sidebar .menu-group #organization a,
       #sidebar .menu-bar #organization a {
         display: block;
-        padding: 0.5rem 11% 0;
+        padding: 1.125rem 10% 0 1rem;
         transition: all 0.3s ease-in-out; }
         #sidebar .menu-group #organization a .icon,
         #sidebar .menu-bar #organization a .icon {
@@ -9114,13 +9118,13 @@ pre {
           width: 1.2rem;
           height: 1.2rem;
           line-height: 1.5;
-          top: 1.125rem;
+          top: 1.12rem;
           left: auto;
-          right: 0.825rem;
+          right: 0.5rem;
           font-size: 0.825rem;
-          color: #d1d8e5;
+          color: #c7d0df;
           text-align: center;
-          background: rgba(255, 255, 255, 0.25);
+          background: rgba(255, 255, 255, 0.825);
           border-radius: 50%;
           border: 1px solid #d9dfe9;
           transition: all 0.3s ease-in-out; }
@@ -9130,7 +9134,7 @@ pre {
           color: #2D3047;
           display: block;
           text-align: left;
-          font-size: 1.25rem; }
+          font-size: 1rem; }
         #sidebar .menu-group #organization a h3,
         #sidebar .menu-bar #organization a h3 {
           margin: 0;
@@ -9168,28 +9172,15 @@ pre {
         font-weight: bold;
         letter-spacing: 0.025em;
         transition: all 0.3s ease-in-out; }
-      #sidebar nav ul li.active a,
-      #sidebar nav ul li:hover a {
-        background: linear-gradient(95deg, #E1E6EE 0%, #e8ebf2 100%);
+      #sidebar nav ul li li:hover a {
+        color: #342E37;
+        background: #E1E6EE; }
+      #sidebar nav ul li li.active a {
+        background: white;
         color: #342E37; }
-      #sidebar nav ul li.active {
-        background: linear-gradient(185deg, #F0F1F6 0%, #f1f3f7 100%); }
-        #sidebar nav ul li.active a {
-          color: #342E37; }
-        #sidebar nav ul li.active ul {
-          display: block; }
-          #sidebar nav ul li.active ul li a {
-            background: transparent;
-            color: #7ba7b0; }
-          #sidebar nav ul li.active ul li.active, #sidebar nav ul li.active ul li:hover {
-            background: transparent; }
-            #sidebar nav ul li.active ul li.active a, #sidebar nav ul li.active ul li:hover a {
-              background-color: white;
-              color: #2D3047; }
       #sidebar nav ul li ul {
         margin: -0.5rem 0 0 0.425rem;
-        padding: 0;
-        display: none; }
+        padding: 0; }
         #sidebar nav ul li ul li a {
           font-size: 0.925rem;
           font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
@@ -9202,24 +9193,13 @@ pre {
         padding-top: 1rem; }
       #sidebar nav ul li:last-child {
         padding-bottom: 1.5rem; }
-    #sidebar nav ul li#project a {
-      background-color: #E1E6EE;
-      font-size: 1.667rem;
-      padding: 0.75rem 1rem 0.75rem 3rem;
-      margin: 1rem 0.825rem 0.5rem 0.825rem;
-      border-radius: 2px;
-      font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif; }
-      #sidebar nav ul li#project a span {
-        left: -0.925rem;
-        top: 0.35rem;
-        position: absolute; }
 
 #header {
   background-color: rgba(255, 255, 255, 0.05);
-  border-bottom: 2px solid #f1f2f5;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.0125);
   transition: all 0.3s ease-in-out; }
   #header:hover {
-    background-color: rgba(255, 255, 255, 0.85); }
+    background-color: rgba(255, 255, 255, 0.2); }
   #header .menu-group,
   #header .menu-bar {
     background-color: transparent;
@@ -9228,13 +9208,27 @@ pre {
     #header .menu-bar a {
       background-color: transparent;
       color: #93B7BE;
-      font-size: 1.125rem;
+      font-size: 1rem;
       font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
       padding: 1.2rem 1.5rem 1.1rem;
+      display: inline-block;
       transition: all 0.3s ease-in-out;
       font-family: "europa", "Open Sans", Roboto, Century Gothic, AppleGothic, Arial, sans-serif;
       font-weight: bold;
       letter-spacing: 0.025em; }
+      #header .menu-group a em,
+      #header .menu-bar a em {
+        font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+        font-style: normal;
+        font-size: 1rem;
+        letter-spacing: 0.01em;
+        margin-left: 0.5rem;
+        text-transform: uppercase;
+        color: #2D3047;
+        font-weight: normal; }
+        #header .menu-group a em:before,
+        #header .menu-bar a em:before {
+          content: '#'; }
       #header .menu-group a:hover,
       #header .menu-bar a:hover {
         color: #37B0E7; }
@@ -9276,11 +9270,18 @@ pre {
     #header .icon-right a:hover small .icon {
       color: #2D3047; }
 
+.popup.switcher-wrap.is-active {
+  top: -1px !important;
+  left: 48px !important;
+  position: fixed !important;
+  border-radius: 1px; }
+
 #switcher {
   padding: 0 0 0.825rem;
-  margin-left: 43px;
-  margin-top: -1px;
-  border-radius: 5px; }
+  top: -1px !important;
+  left: 48px !important;
+  position: fixed !important;
+  border-radius: 1px; }
   #switcher select {
     margin: 0.25rem 7%;
     width: 86%;
@@ -9324,18 +9325,18 @@ pre {
     letter-spacing: 0.125em; }
 
 footer {
-  border-top: 2px solid #E1E6EE;
-  margin-top: 1.5rem;
+  border-top: 2px solid rgba(55, 55, 55, 0.025);
   opacity: 1;
   position: relative;
   transition: all 0.3s ease-in-out; }
-  footer img {
-    max-height: 24px;
+  footer .microsoft-logo {
     position: absolute;
-    top: 1.25rem;
-    right: 2rem; }
+    top: 0.825rem;
+    right: 1rem; }
+    footer .microsoft-logo img {
+      max-height: 24px; }
   footer ul {
-    margin: 0 0.75rem; }
+    margin: 0.5rem 2rem 0; }
     footer ul li {
       margin-right: 1.5rem; }
       footer ul li a,
@@ -9398,7 +9399,7 @@ footer {
       height: 170px; }
     .template-home .project h2 {
       margin: 1.25rem 0 0 4rem;
-      font-size: 1.5rem;
+      font-size: 1.333rem;
       color: #342E37;
       transition: all 0.3s ease-in-out; }
     .template-home .project h4 {
@@ -9499,7 +9500,7 @@ footer {
 
 .template-project {
   position: relative;
-  padding: 1.5rem 1rem 0;
+  padding: 0;
   margin: 0; }
   @media only screen and (min-width: 90em) {
     .template-project .grid-container {
@@ -9509,17 +9510,16 @@ footer {
     display: block;
     content: " ";
     top: 0;
-    left: -2rem;
+    left: 16.67%;
     width: 110%;
     height: 252px;
     position: absolute;
-    z-index: 100; }
+    z-index: -100; }
 
 .project-header-wrap {
   position: relative;
   z-index: 200;
-  padding-bottom: 2rem;
-  padding-left: 2rem; }
+  padding: .75rem 2.75rem; }
 
 .project-header {
   min-height: 145px;
@@ -9653,7 +9653,9 @@ footer {
 
 .build-list {
   margin-top: 1rem;
-  margin-right: 1rem; }
+  margin-right: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem; }
   .build-list .build-item {
     border: none; }
     .build-list .build-item:first-child {
@@ -9736,7 +9738,6 @@ footer {
 
 .template-build {
   position: relative;
-  padding: 1.5rem 1rem 0;
   margin: 0; }
   .template-build .grid-container {
     max-width: 60rem !important; }
@@ -9803,6 +9804,14 @@ footer {
       transition: all 0.3s ease-in-out; }
       .build-header h1 a:hover {
         left: -2.5rem; }
+    .build-header h1 em {
+      font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
+      font-style: normal;
+      font-size: 1.667rem;
+      letter-spacing: 0.01em;
+      text-transform: uppercase; }
+      .build-header h1 em:before {
+        content: '#'; }
     .build-header h1 small {
       font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
       font-size: 0.667rem;

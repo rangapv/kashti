@@ -5276,6 +5276,823 @@ if (typeof define === 'function' && define.amd) {
 
 })(window, document, 'Hammer');
 
+/*
+Syntax highlighting with language autodetection.
+https://highlightjs.org/
+*/
+
+(function(factory) {
+
+  // Find the global object for export to both the browser and web workers.
+  var globalObject = typeof window === 'object' && window ||
+                     typeof self === 'object' && self;
+
+  // Setup highlight.js for different environments. First is Node.js or
+  // CommonJS.
+  if(typeof exports !== 'undefined') {
+    factory(exports);
+  } else if(globalObject) {
+    // Export hljs globally even when using AMD for cases when this script
+    // is loaded with others that may still expect a global hljs.
+    globalObject.hljs = factory({});
+
+    // Finally register the global hljs with AMD.
+    if(typeof define === 'function' && define.amd) {
+      define([], function() {
+        return globalObject.hljs;
+      });
+    }
+  }
+
+}(function(hljs) {
+  // Convenience variables for build-in objects
+  var ArrayProto = [],
+      objectKeys = Object.keys;
+
+  // Global internal variables used within the highlight.js library.
+  var languages = {},
+      aliases   = {};
+
+  // Regular expressions used throughout the highlight.js library.
+  var noHighlightRe    = /^(no-?highlight|plain|text)$/i,
+      languagePrefixRe = /\blang(?:uage)?-([\w-]+)\b/i,
+      fixMarkupRe      = /((^(<[^>]+>|\t|)+|(?:\n)))/gm;
+
+  var spanEndTag = '</span>';
+
+  // Global options used when within external APIs. This is modified when
+  // calling the `hljs.configure` function.
+  var options = {
+    classPrefix: 'hljs-',
+    tabReplace: null,
+    useBR: false,
+    languages: undefined
+  };
+
+
+  /* Utility functions */
+
+  function escape(value) {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function tag(node) {
+    return node.nodeName.toLowerCase();
+  }
+
+  function testRe(re, lexeme) {
+    var match = re && re.exec(lexeme);
+    return match && match.index === 0;
+  }
+
+  function isNotHighlighted(language) {
+    return noHighlightRe.test(language);
+  }
+
+  function blockLanguage(block) {
+    var i, match, length, _class;
+    var classes = block.className + ' ';
+
+    classes += block.parentNode ? block.parentNode.className : '';
+
+    // language-* takes precedence over non-prefixed class names.
+    match = languagePrefixRe.exec(classes);
+    if (match) {
+      return getLanguage(match[1]) ? match[1] : 'no-highlight';
+    }
+
+    classes = classes.split(/\s+/);
+
+    for (i = 0, length = classes.length; i < length; i++) {
+      _class = classes[i]
+
+      if (isNotHighlighted(_class) || getLanguage(_class)) {
+        return _class;
+      }
+    }
+  }
+
+  function inherit(parent) {  // inherit(parent, override_obj, override_obj, ...)
+    var key;
+    var result = {};
+    var objects = Array.prototype.slice.call(arguments, 1);
+
+    for (key in parent)
+      result[key] = parent[key];
+    objects.forEach(function(obj) {
+      for (key in obj)
+        result[key] = obj[key];
+    });
+    return result;
+  }
+
+  /* Stream merging */
+
+  function nodeStream(node) {
+    var result = [];
+    (function _nodeStream(node, offset) {
+      for (var child = node.firstChild; child; child = child.nextSibling) {
+        if (child.nodeType === 3)
+          offset += child.nodeValue.length;
+        else if (child.nodeType === 1) {
+          result.push({
+            event: 'start',
+            offset: offset,
+            node: child
+          });
+          offset = _nodeStream(child, offset);
+          // Prevent void elements from having an end tag that would actually
+          // double them in the output. There are more void elements in HTML
+          // but we list only those realistically expected in code display.
+          if (!tag(child).match(/br|hr|img|input/)) {
+            result.push({
+              event: 'stop',
+              offset: offset,
+              node: child
+            });
+          }
+        }
+      }
+      return offset;
+    })(node, 0);
+    return result;
+  }
+
+  function mergeStreams(original, highlighted, value) {
+    var processed = 0;
+    var result = '';
+    var nodeStack = [];
+
+    function selectStream() {
+      if (!original.length || !highlighted.length) {
+        return original.length ? original : highlighted;
+      }
+      if (original[0].offset !== highlighted[0].offset) {
+        return (original[0].offset < highlighted[0].offset) ? original : highlighted;
+      }
+
+      /*
+      To avoid starting the stream just before it should stop the order is
+      ensured that original always starts first and closes last:
+
+      if (event1 == 'start' && event2 == 'start')
+        return original;
+      if (event1 == 'start' && event2 == 'stop')
+        return highlighted;
+      if (event1 == 'stop' && event2 == 'start')
+        return original;
+      if (event1 == 'stop' && event2 == 'stop')
+        return highlighted;
+
+      ... which is collapsed to:
+      */
+      return highlighted[0].event === 'start' ? original : highlighted;
+    }
+
+    function open(node) {
+      function attr_str(a) {return ' ' + a.nodeName + '="' + escape(a.value).replace('"', '&quot;') + '"';}
+      result += '<' + tag(node) + ArrayProto.map.call(node.attributes, attr_str).join('') + '>';
+    }
+
+    function close(node) {
+      result += '</' + tag(node) + '>';
+    }
+
+    function render(event) {
+      (event.event === 'start' ? open : close)(event.node);
+    }
+
+    while (original.length || highlighted.length) {
+      var stream = selectStream();
+      result += escape(value.substring(processed, stream[0].offset));
+      processed = stream[0].offset;
+      if (stream === original) {
+        /*
+        On any opening or closing tag of the original markup we first close
+        the entire highlighted node stack, then render the original tag along
+        with all the following original tags at the same offset and then
+        reopen all the tags on the highlighted stack.
+        */
+        nodeStack.reverse().forEach(close);
+        do {
+          render(stream.splice(0, 1)[0]);
+          stream = selectStream();
+        } while (stream === original && stream.length && stream[0].offset === processed);
+        nodeStack.reverse().forEach(open);
+      } else {
+        if (stream[0].event === 'start') {
+          nodeStack.push(stream[0].node);
+        } else {
+          nodeStack.pop();
+        }
+        render(stream.splice(0, 1)[0]);
+      }
+    }
+    return result + escape(value.substr(processed));
+  }
+
+  /* Initialization */
+
+  function expand_mode(mode) {
+    if (mode.variants && !mode.cached_variants) {
+      mode.cached_variants = mode.variants.map(function(variant) {
+        return inherit(mode, {variants: null}, variant);
+      });
+    }
+    return mode.cached_variants || (mode.endsWithParent && [inherit(mode)]) || [mode];
+  }
+
+  function compileLanguage(language) {
+
+    function reStr(re) {
+        return (re && re.source) || re;
+    }
+
+    function langRe(value, global) {
+      return new RegExp(
+        reStr(value),
+        'm' + (language.case_insensitive ? 'i' : '') + (global ? 'g' : '')
+      );
+    }
+
+    function compileMode(mode, parent) {
+      if (mode.compiled)
+        return;
+      mode.compiled = true;
+
+      mode.keywords = mode.keywords || mode.beginKeywords;
+      if (mode.keywords) {
+        var compiled_keywords = {};
+
+        var flatten = function(className, str) {
+          if (language.case_insensitive) {
+            str = str.toLowerCase();
+          }
+          str.split(' ').forEach(function(kw) {
+            var pair = kw.split('|');
+            compiled_keywords[pair[0]] = [className, pair[1] ? Number(pair[1]) : 1];
+          });
+        };
+
+        if (typeof mode.keywords === 'string') { // string
+          flatten('keyword', mode.keywords);
+        } else {
+          objectKeys(mode.keywords).forEach(function (className) {
+            flatten(className, mode.keywords[className]);
+          });
+        }
+        mode.keywords = compiled_keywords;
+      }
+      mode.lexemesRe = langRe(mode.lexemes || /\w+/, true);
+
+      if (parent) {
+        if (mode.beginKeywords) {
+          mode.begin = '\\b(' + mode.beginKeywords.split(' ').join('|') + ')\\b';
+        }
+        if (!mode.begin)
+          mode.begin = /\B|\b/;
+        mode.beginRe = langRe(mode.begin);
+        if (!mode.end && !mode.endsWithParent)
+          mode.end = /\B|\b/;
+        if (mode.end)
+          mode.endRe = langRe(mode.end);
+        mode.terminator_end = reStr(mode.end) || '';
+        if (mode.endsWithParent && parent.terminator_end)
+          mode.terminator_end += (mode.end ? '|' : '') + parent.terminator_end;
+      }
+      if (mode.illegal)
+        mode.illegalRe = langRe(mode.illegal);
+      if (mode.relevance == null)
+        mode.relevance = 1;
+      if (!mode.contains) {
+        mode.contains = [];
+      }
+      mode.contains = Array.prototype.concat.apply([], mode.contains.map(function(c) {
+        return expand_mode(c === 'self' ? mode : c)
+      }));
+      mode.contains.forEach(function(c) {compileMode(c, mode);});
+
+      if (mode.starts) {
+        compileMode(mode.starts, parent);
+      }
+
+      var terminators =
+        mode.contains.map(function(c) {
+          return c.beginKeywords ? '\\.?(' + c.begin + ')\\.?' : c.begin;
+        })
+        .concat([mode.terminator_end, mode.illegal])
+        .map(reStr)
+        .filter(Boolean);
+      mode.terminators = terminators.length ? langRe(terminators.join('|'), true) : {exec: function(/*s*/) {return null;}};
+    }
+
+    compileMode(language);
+  }
+
+  /*
+  Core highlighting function. Accepts a language name, or an alias, and a
+  string with the code to highlight. Returns an object with the following
+  properties:
+
+  - relevance (int)
+  - value (an HTML string with highlighting markup)
+
+  */
+  function highlight(name, value, ignore_illegals, continuation) {
+
+    function subMode(lexeme, mode) {
+      var i, length;
+
+      for (i = 0, length = mode.contains.length; i < length; i++) {
+        if (testRe(mode.contains[i].beginRe, lexeme)) {
+          return mode.contains[i];
+        }
+      }
+    }
+
+    function endOfMode(mode, lexeme) {
+      if (testRe(mode.endRe, lexeme)) {
+        while (mode.endsParent && mode.parent) {
+          mode = mode.parent;
+        }
+        return mode;
+      }
+      if (mode.endsWithParent) {
+        return endOfMode(mode.parent, lexeme);
+      }
+    }
+
+    function isIllegal(lexeme, mode) {
+      return !ignore_illegals && testRe(mode.illegalRe, lexeme);
+    }
+
+    function keywordMatch(mode, match) {
+      var match_str = language.case_insensitive ? match[0].toLowerCase() : match[0];
+      return mode.keywords.hasOwnProperty(match_str) && mode.keywords[match_str];
+    }
+
+    function buildSpan(classname, insideSpan, leaveOpen, noPrefix) {
+      var classPrefix = noPrefix ? '' : options.classPrefix,
+          openSpan    = '<span class="' + classPrefix,
+          closeSpan   = leaveOpen ? '' : spanEndTag
+
+      openSpan += classname + '">';
+
+      return openSpan + insideSpan + closeSpan;
+    }
+
+    function processKeywords() {
+      var keyword_match, last_index, match, result;
+
+      if (!top.keywords)
+        return escape(mode_buffer);
+
+      result = '';
+      last_index = 0;
+      top.lexemesRe.lastIndex = 0;
+      match = top.lexemesRe.exec(mode_buffer);
+
+      while (match) {
+        result += escape(mode_buffer.substring(last_index, match.index));
+        keyword_match = keywordMatch(top, match);
+        if (keyword_match) {
+          relevance += keyword_match[1];
+          result += buildSpan(keyword_match[0], escape(match[0]));
+        } else {
+          result += escape(match[0]);
+        }
+        last_index = top.lexemesRe.lastIndex;
+        match = top.lexemesRe.exec(mode_buffer);
+      }
+      return result + escape(mode_buffer.substr(last_index));
+    }
+
+    function processSubLanguage() {
+      var explicit = typeof top.subLanguage === 'string';
+      if (explicit && !languages[top.subLanguage]) {
+        return escape(mode_buffer);
+      }
+
+      var result = explicit ?
+                   highlight(top.subLanguage, mode_buffer, true, continuations[top.subLanguage]) :
+                   highlightAuto(mode_buffer, top.subLanguage.length ? top.subLanguage : undefined);
+
+      // Counting embedded language score towards the host language may be disabled
+      // with zeroing the containing mode relevance. Usecase in point is Markdown that
+      // allows XML everywhere and makes every XML snippet to have a much larger Markdown
+      // score.
+      if (top.relevance > 0) {
+        relevance += result.relevance;
+      }
+      if (explicit) {
+        continuations[top.subLanguage] = result.top;
+      }
+      return buildSpan(result.language, result.value, false, true);
+    }
+
+    function processBuffer() {
+      result += (top.subLanguage != null ? processSubLanguage() : processKeywords());
+      mode_buffer = '';
+    }
+
+    function startNewMode(mode) {
+      result += mode.className? buildSpan(mode.className, '', true): '';
+      top = Object.create(mode, {parent: {value: top}});
+    }
+
+    function processLexeme(buffer, lexeme) {
+
+      mode_buffer += buffer;
+
+      if (lexeme == null) {
+        processBuffer();
+        return 0;
+      }
+
+      var new_mode = subMode(lexeme, top);
+      if (new_mode) {
+        if (new_mode.skip) {
+          mode_buffer += lexeme;
+        } else {
+          if (new_mode.excludeBegin) {
+            mode_buffer += lexeme;
+          }
+          processBuffer();
+          if (!new_mode.returnBegin && !new_mode.excludeBegin) {
+            mode_buffer = lexeme;
+          }
+        }
+        startNewMode(new_mode, lexeme);
+        return new_mode.returnBegin ? 0 : lexeme.length;
+      }
+
+      var end_mode = endOfMode(top, lexeme);
+      if (end_mode) {
+        var origin = top;
+        if (origin.skip) {
+          mode_buffer += lexeme;
+        } else {
+          if (!(origin.returnEnd || origin.excludeEnd)) {
+            mode_buffer += lexeme;
+          }
+          processBuffer();
+          if (origin.excludeEnd) {
+            mode_buffer = lexeme;
+          }
+        }
+        do {
+          if (top.className) {
+            result += spanEndTag;
+          }
+          if (!top.skip) {
+            relevance += top.relevance;
+          }
+          top = top.parent;
+        } while (top !== end_mode.parent);
+        if (end_mode.starts) {
+          startNewMode(end_mode.starts, '');
+        }
+        return origin.returnEnd ? 0 : lexeme.length;
+      }
+
+      if (isIllegal(lexeme, top))
+        throw new Error('Illegal lexeme "' + lexeme + '" for mode "' + (top.className || '<unnamed>') + '"');
+
+      /*
+      Parser should not reach this point as all types of lexemes should be caught
+      earlier, but if it does due to some bug make sure it advances at least one
+      character forward to prevent infinite looping.
+      */
+      mode_buffer += lexeme;
+      return lexeme.length || 1;
+    }
+
+    var language = getLanguage(name);
+    if (!language) {
+      throw new Error('Unknown language: "' + name + '"');
+    }
+
+    compileLanguage(language);
+    var top = continuation || language;
+    var continuations = {}; // keep continuations for sub-languages
+    var result = '', current;
+    for(current = top; current !== language; current = current.parent) {
+      if (current.className) {
+        result = buildSpan(current.className, '', true) + result;
+      }
+    }
+    var mode_buffer = '';
+    var relevance = 0;
+    try {
+      var match, count, index = 0;
+      while (true) {
+        top.terminators.lastIndex = index;
+        match = top.terminators.exec(value);
+        if (!match)
+          break;
+        count = processLexeme(value.substring(index, match.index), match[0]);
+        index = match.index + count;
+      }
+      processLexeme(value.substr(index));
+      for(current = top; current.parent; current = current.parent) { // close dangling modes
+        if (current.className) {
+          result += spanEndTag;
+        }
+      }
+      return {
+        relevance: relevance,
+        value: result,
+        language: name,
+        top: top
+      };
+    } catch (e) {
+      if (e.message && e.message.indexOf('Illegal') !== -1) {
+        return {
+          relevance: 0,
+          value: escape(value)
+        };
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  /*
+  Highlighting with language detection. Accepts a string with the code to
+  highlight. Returns an object with the following properties:
+
+  - language (detected language)
+  - relevance (int)
+  - value (an HTML string with highlighting markup)
+  - second_best (object with the same structure for second-best heuristically
+    detected language, may be absent)
+
+  */
+  function highlightAuto(text, languageSubset) {
+    languageSubset = languageSubset || options.languages || objectKeys(languages);
+    var result = {
+      relevance: 0,
+      value: escape(text)
+    };
+    var second_best = result;
+    languageSubset.filter(getLanguage).forEach(function(name) {
+      var current = highlight(name, text, false);
+      current.language = name;
+      if (current.relevance > second_best.relevance) {
+        second_best = current;
+      }
+      if (current.relevance > result.relevance) {
+        second_best = result;
+        result = current;
+      }
+    });
+    if (second_best.language) {
+      result.second_best = second_best;
+    }
+    return result;
+  }
+
+  /*
+  Post-processing of the highlighted markup:
+
+  - replace TABs with something more useful
+  - replace real line-breaks with '<br>' for non-pre containers
+
+  */
+  function fixMarkup(value) {
+    return !(options.tabReplace || options.useBR)
+      ? value
+      : value.replace(fixMarkupRe, function(match, p1) {
+          if (options.useBR && match === '\n') {
+            return '<br>';
+          } else if (options.tabReplace) {
+            return p1.replace(/\t/g, options.tabReplace);
+          }
+          return '';
+      });
+  }
+
+  function buildClassName(prevClassName, currentLang, resultLang) {
+    var language = currentLang ? aliases[currentLang] : resultLang,
+        result   = [prevClassName.trim()];
+
+    if (!prevClassName.match(/\bhljs\b/)) {
+      result.push('hljs');
+    }
+
+    if (prevClassName.indexOf(language) === -1) {
+      result.push(language);
+    }
+
+    return result.join(' ').trim();
+  }
+
+  /*
+  Applies highlighting to a DOM node containing code. Accepts a DOM node and
+  two optional parameters for fixMarkup.
+  */
+  function highlightBlock(block) {
+    var node, originalStream, result, resultNode, text;
+    var language = blockLanguage(block);
+
+    if (isNotHighlighted(language))
+        return;
+
+    if (options.useBR) {
+      node = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      node.innerHTML = block.innerHTML.replace(/\n/g, '').replace(/<br[ \/]*>/g, '\n');
+    } else {
+      node = block;
+    }
+    text = node.textContent;
+    result = language ? highlight(language, text, true) : highlightAuto(text);
+
+    originalStream = nodeStream(node);
+    if (originalStream.length) {
+      resultNode = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      resultNode.innerHTML = result.value;
+      result.value = mergeStreams(originalStream, nodeStream(resultNode), text);
+    }
+    result.value = fixMarkup(result.value);
+
+    block.innerHTML = result.value;
+    block.className = buildClassName(block.className, language, result.language);
+    block.result = {
+      language: result.language,
+      re: result.relevance
+    };
+    if (result.second_best) {
+      block.second_best = {
+        language: result.second_best.language,
+        re: result.second_best.relevance
+      };
+    }
+  }
+
+  /*
+  Updates highlight.js global options with values passed in the form of an object.
+  */
+  function configure(user_options) {
+    options = inherit(options, user_options);
+  }
+
+  /*
+  Applies highlighting to all <pre><code>..</code></pre> blocks on a page.
+  */
+  function initHighlighting() {
+    if (initHighlighting.called)
+      return;
+    initHighlighting.called = true;
+
+    var blocks = document.querySelectorAll('pre code');
+    ArrayProto.forEach.call(blocks, highlightBlock);
+  }
+
+  /*
+  Attaches highlighting to the page load event.
+  */
+  function initHighlightingOnLoad() {
+    addEventListener('DOMContentLoaded', initHighlighting, false);
+    addEventListener('load', initHighlighting, false);
+  }
+
+  function registerLanguage(name, language) {
+    var lang = languages[name] = language(hljs);
+    if (lang.aliases) {
+      lang.aliases.forEach(function(alias) {aliases[alias] = name;});
+    }
+  }
+
+  function listLanguages() {
+    return objectKeys(languages);
+  }
+
+  function getLanguage(name) {
+    name = (name || '').toLowerCase();
+    return languages[name] || languages[aliases[name]];
+  }
+
+  /* Interface definition */
+
+  hljs.highlight = highlight;
+  hljs.highlightAuto = highlightAuto;
+  hljs.fixMarkup = fixMarkup;
+  hljs.highlightBlock = highlightBlock;
+  hljs.configure = configure;
+  hljs.initHighlighting = initHighlighting;
+  hljs.initHighlightingOnLoad = initHighlightingOnLoad;
+  hljs.registerLanguage = registerLanguage;
+  hljs.listLanguages = listLanguages;
+  hljs.getLanguage = getLanguage;
+  hljs.inherit = inherit;
+
+  // Common regexps
+  hljs.IDENT_RE = '[a-zA-Z]\\w*';
+  hljs.UNDERSCORE_IDENT_RE = '[a-zA-Z_]\\w*';
+  hljs.NUMBER_RE = '\\b\\d+(\\.\\d+)?';
+  hljs.C_NUMBER_RE = '(-?)(\\b0[xX][a-fA-F0-9]+|(\\b\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)'; // 0x..., 0..., decimal, float
+  hljs.BINARY_NUMBER_RE = '\\b(0b[01]+)'; // 0b...
+  hljs.RE_STARTERS_RE = '!|!=|!==|%|%=|&|&&|&=|\\*|\\*=|\\+|\\+=|,|-|-=|/=|/|:|;|<<|<<=|<=|<|===|==|=|>>>=|>>=|>=|>>>|>>|>|\\?|\\[|\\{|\\(|\\^|\\^=|\\||\\|=|\\|\\||~';
+
+  // Common modes
+  hljs.BACKSLASH_ESCAPE = {
+    begin: '\\\\[\\s\\S]', relevance: 0
+  };
+  hljs.APOS_STRING_MODE = {
+    className: 'string',
+    begin: '\'', end: '\'',
+    illegal: '\\n',
+    contains: [hljs.BACKSLASH_ESCAPE]
+  };
+  hljs.QUOTE_STRING_MODE = {
+    className: 'string',
+    begin: '"', end: '"',
+    illegal: '\\n',
+    contains: [hljs.BACKSLASH_ESCAPE]
+  };
+  hljs.PHRASAL_WORDS_MODE = {
+    begin: /\b(a|an|the|are|I'm|isn't|don't|doesn't|won't|but|just|should|pretty|simply|enough|gonna|going|wtf|so|such|will|you|your|they|like|more)\b/
+  };
+  hljs.COMMENT = function (begin, end, inherits) {
+    var mode = hljs.inherit(
+      {
+        className: 'comment',
+        begin: begin, end: end,
+        contains: []
+      },
+      inherits || {}
+    );
+    mode.contains.push(hljs.PHRASAL_WORDS_MODE);
+    mode.contains.push({
+      className: 'doctag',
+      begin: '(?:TODO|FIXME|NOTE|BUG|XXX):',
+      relevance: 0
+    });
+    return mode;
+  };
+  hljs.C_LINE_COMMENT_MODE = hljs.COMMENT('//', '$');
+  hljs.C_BLOCK_COMMENT_MODE = hljs.COMMENT('/\\*', '\\*/');
+  hljs.HASH_COMMENT_MODE = hljs.COMMENT('#', '$');
+  hljs.NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.NUMBER_RE,
+    relevance: 0
+  };
+  hljs.C_NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.C_NUMBER_RE,
+    relevance: 0
+  };
+  hljs.BINARY_NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.BINARY_NUMBER_RE,
+    relevance: 0
+  };
+  hljs.CSS_NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.NUMBER_RE + '(' +
+      '%|em|ex|ch|rem'  +
+      '|vw|vh|vmin|vmax' +
+      '|cm|mm|in|pt|pc|px' +
+      '|deg|grad|rad|turn' +
+      '|s|ms' +
+      '|Hz|kHz' +
+      '|dpi|dpcm|dppx' +
+      ')?',
+    relevance: 0
+  };
+  hljs.REGEXP_MODE = {
+    className: 'regexp',
+    begin: /\//, end: /\/[gimuy]*/,
+    illegal: /\n/,
+    contains: [
+      hljs.BACKSLASH_ESCAPE,
+      {
+        begin: /\[/, end: /\]/,
+        relevance: 0,
+        contains: [hljs.BACKSLASH_ESCAPE]
+      }
+    ]
+  };
+  hljs.TITLE_MODE = {
+    className: 'title',
+    begin: hljs.IDENT_RE,
+    relevance: 0
+  };
+  hljs.UNDERSCORE_TITLE_MODE = {
+    className: 'title',
+    begin: hljs.UNDERSCORE_IDENT_RE,
+    relevance: 0
+  };
+  hljs.METHOD_GUARD = {
+    // excludes method names from keyword processing
+    begin: '\\.\\s*' + hljs.UNDERSCORE_IDENT_RE,
+    relevance: 0
+  };
+
+  return hljs;
+}));
+
 /**
  * @license AngularJS v1.4.14
  * (c) 2010-2015 Google, Inc. http://angularjs.org
@@ -44884,6 +45701,119 @@ includeDirFactory = function (dirName) {
  */
 
 !function(a){"object"==typeof exports?module.exports=a():"function"==typeof define&&define.amd?define(a):"undefined"!=typeof window?window.IconicJS=a():"undefined"!=typeof global?global.IconicJS=a():"undefined"!=typeof self&&(self.IconicJS=a())}(function(){var a;return function b(a,c,d){function e(g,h){if(!c[g]){if(!a[g]){var i="function"==typeof require&&require;if(!h&&i)return i(g,!0);if(f)return f(g,!0);throw new Error("Cannot find module '"+g+"'")}var j=c[g]={exports:{}};a[g][0].call(j.exports,function(b){var c=a[g][1][b];return e(c?c:b)},j,j.exports,b,a,c,d)}return c[g].exports}for(var f="function"==typeof require&&require,g=0;g<d.length;g++)e(d[g]);return e}({1:[function(a,b){var c=(a("./modules/polyfills"),a("./modules/svg-injector")),d=a("./modules/extend"),e=a("./modules/responsive"),f=a("./modules/position"),g=a("./modules/container"),h=a("./modules/log"),i={},j=window.iconicSmartIconApis={},k=("file:"===window.location.protocol,0),l=function(a,b,e){b=d({},i,b||{});var f={evalScripts:b.evalScripts,pngFallback:b.pngFallback};f.each=function(a){if(a)if("string"==typeof a)h.debug(a);else if(a instanceof SVGSVGElement){var c=a.getAttribute("data-icon");if(c&&j[c]){var d=j[c](a);for(var e in d)a[e]=d[e]}/iconic-bg-/.test(a.getAttribute("class"))&&g.addBackground(a),m(a),k++,b&&b.each&&"function"==typeof b.each&&b.each(a)}},"string"==typeof a&&(a=document.querySelectorAll(a)),c(a,f,e)},m=function(a){var b=[];a?"string"==typeof a?b=document.querySelectorAll(a):void 0!==a.length?b=a:"object"==typeof a&&b.push(a):b=document.querySelectorAll("svg.iconic"),Array.prototype.forEach.call(b,function(a){a instanceof SVGSVGElement&&(a.update&&a.update(),e.refresh(a),f.refresh(a))})},n=function(){i.debug&&console.time&&console.time("autoInjectSelector - "+i.autoInjectSelector);var a=k;l(i.autoInjectSelector,{},function(){if(i.debug&&console.timeEnd&&console.timeEnd("autoInjectSelector - "+i.autoInjectSelector),h.debug("AutoInjected: "+(k-a)),e.refreshAll(),i.autoInjectDone&&"function"==typeof i.autoInjectDone){var b=k-a;i.autoInjectDone(b)}})},o=function(a){a&&""!==a&&"complete"!==document.readyState?document.addEventListener("DOMContentLoaded",n):document.removeEventListener("DOMContentLoaded",n)},p=function(a){return a=a||{},d(i,a),o(i.autoInjectSelector),h.enableDebug(i.debug),window._Iconic?window._Iconic:{inject:l,update:m,smartIconApis:j,svgInjectedCount:k}};b.exports=p,window._Iconic=new p({autoInjectSelector:"img.iconic",evalScripts:"once",pngFallback:!1,each:null,autoInjectDone:null,debug:!1})},{"./modules/container":2,"./modules/extend":3,"./modules/log":4,"./modules/polyfills":5,"./modules/position":6,"./modules/responsive":7,"./modules/svg-injector":8}],2:[function(a,b){var c=function(a){var b=a.getAttribute("class").split(" "),c=-1!==b.indexOf("iconic-fluid"),d=[],e=["iconic-bg"];Array.prototype.forEach.call(b,function(a){switch(a){case"iconic-sm":case"iconic-md":case"iconic-lg":d.push(a),c||e.push(a.replace(/-/,"-bg-"));break;case"iconic-fluid":d.push(a),e.push(a.replace(/-/,"-bg-"));break;case"iconic-bg-circle":case"iconic-bg-rounded-rect":case"iconic-bg-badge":e.push(a);break;default:d.push(a)}}),a.setAttribute("class",d.join(" "));var f=a.parentNode,g=Array.prototype.indexOf.call(f.childNodes,a),h=document.createElement("span");h.setAttribute("class",e.join(" ")),h.appendChild(a),f.insertBefore(h,f.childNodes[g])};b.exports={addBackground:c}},{}],3:[function(a,b){b.exports=function(a){return Array.prototype.forEach.call(Array.prototype.slice.call(arguments,1),function(b){if(b)for(var c in b)b.hasOwnProperty(c)&&(a[c]=b[c])}),a}},{}],4:[function(a,b){var c=!1,d=function(a){console&&console.log&&console.log(a)},e=function(a){d("Iconic INFO: "+a)},f=function(a){d("Iconic WARNING: "+a)},g=function(a){c&&d("Iconic DEBUG: "+a)},h=function(a){c=a};b.exports={info:e,warn:f,debug:g,enableDebug:h}},{}],5:[function(){Array.prototype.forEach||(Array.prototype.forEach=function(a,b){"use strict";if(void 0===this||null===this||"function"!=typeof a)throw new TypeError;var c,d=this.length>>>0;for(c=0;d>c;++c)c in this&&a.call(b,this[c],c,this)}),function(){if(Event.prototype.preventDefault||(Event.prototype.preventDefault=function(){this.returnValue=!1}),Event.prototype.stopPropagation||(Event.prototype.stopPropagation=function(){this.cancelBubble=!0}),!Element.prototype.addEventListener){var a=[],b=function(b,c){var d=this,e=function(a){a.target=a.srcElement,a.currentTarget=d,c.handleEvent?c.handleEvent(a):c.call(d,a)};if("DOMContentLoaded"==b){var f=function(a){"complete"==document.readyState&&e(a)};if(document.attachEvent("onreadystatechange",f),a.push({object:this,type:b,listener:c,wrapper:f}),"complete"==document.readyState){var g=new Event;g.srcElement=window,f(g)}}else this.attachEvent("on"+b,e),a.push({object:this,type:b,listener:c,wrapper:e})},c=function(b,c){for(var d=0;d<a.length;){var e=a[d];if(e.object==this&&e.type==b&&e.listener==c){"DOMContentLoaded"==b?this.detachEvent("onreadystatechange",e.wrapper):this.detachEvent("on"+b,e.wrapper);break}++d}};Element.prototype.addEventListener=b,Element.prototype.removeEventListener=c,HTMLDocument&&(HTMLDocument.prototype.addEventListener=b,HTMLDocument.prototype.removeEventListener=c),Window&&(Window.prototype.addEventListener=b,Window.prototype.removeEventListener=c)}}()},{}],6:[function(a,b){var c=function(a){var b=a.getAttribute("data-position");if(b&&""!==b){var c,d,e,f,g,h,i,j=a.getAttribute("width"),k=a.getAttribute("height"),l=b.split("-"),m=a.querySelectorAll("g.iconic-container");Array.prototype.forEach.call(m,function(a){if(c=a.getAttribute("data-width"),d=a.getAttribute("data-height"),c!==j||d!==k){if(e=a.getAttribute("transform"),f=1,e){var b=e.match(/scale\((\d)/);f=b&&b[1]?b[1]:1}g=Math.floor((j/f-c)/2),h=Math.floor((k/f-d)/2),Array.prototype.forEach.call(l,function(a){switch(a){case"top":h=0;break;case"bottom":h=k/f-d;break;case"left":g=0;break;case"right":g=j/f-c;break;case"center":break;default:console&&console.log&&console.log("Unknown position: "+a)}}),i=0===h?g:g+" "+h,i="translate("+i+")",e?/translate/.test(e)?e=e.replace(/translate\(.*?\)/,i):e+=" "+i:e=i,a.setAttribute("transform",e)}})}};b.exports={refresh:c}},{}],7:[function(a,b){var c=/(iconic-sm\b|iconic-md\b|iconic-lg\b)/,d=function(a,b){var c="undefined"!=typeof window.getComputedStyle&&window.getComputedStyle(a,null).getPropertyValue(b);return!c&&a.currentStyle&&(c=a.currentStyle[b.replace(/([a-z])\-([a-z])/,function(a,b,c){return b+c.toUpperCase()})]||a.currentStyle[b]),c},e=function(a){var b=a.style.display;a.style.display="block";var c=parseFloat(d(a,"width").slice(0,-2)),e=parseFloat(d(a,"height").slice(0,-2));return a.style.display=b,{width:c,height:e}},f=function(){var a="/* Iconic Responsive Support Styles */\n.iconic-property-fill, .iconic-property-text {stroke: none !important;}\n.iconic-property-stroke {fill: none !important;}\nsvg.iconic.iconic-fluid {height:100% !important;width:100% !important;}\nsvg.iconic.iconic-sm:not(.iconic-size-md):not(.iconic-size-lg), svg.iconic.iconic-size-sm{width:16px;height:16px;}\nsvg.iconic.iconic-md:not(.iconic-size-sm):not(.iconic-size-lg), svg.iconic.iconic-size-md{width:32px;height:32px;}\nsvg.iconic.iconic-lg:not(.iconic-size-sm):not(.iconic-size-md), svg.iconic.iconic-size-lg{width:128px;height:128px;}\nsvg.iconic-sm > g.iconic-md, svg.iconic-sm > g.iconic-lg, svg.iconic-md > g.iconic-sm, svg.iconic-md > g.iconic-lg, svg.iconic-lg > g.iconic-sm, svg.iconic-lg > g.iconic-md {display: none;}\nsvg.iconic.iconic-icon-sm > g.iconic-lg, svg.iconic.iconic-icon-md > g.iconic-lg {display:none;}\nsvg.iconic-sm:not(.iconic-icon-md):not(.iconic-icon-lg) > g.iconic-sm, svg.iconic-md.iconic-icon-sm > g.iconic-sm, svg.iconic-lg.iconic-icon-sm > g.iconic-sm {display:inline;}\nsvg.iconic-md:not(.iconic-icon-sm):not(.iconic-icon-lg) > g.iconic-md, svg.iconic-sm.iconic-icon-md > g.iconic-md, svg.iconic-lg.iconic-icon-md > g.iconic-md {display:inline;}\nsvg.iconic-lg:not(.iconic-icon-sm):not(.iconic-icon-md) > g.iconic-lg, svg.iconic-sm.iconic-icon-lg > g.iconic-lg, svg.iconic-md.iconic-icon-lg > g.iconic-lg {display:inline;}";navigator&&navigator.userAgent&&/MSIE 10\.0/.test(navigator.userAgent)&&(a+="svg.iconic{zoom:1.0001;}");var b=document.createElement("style");b.id="iconic-responsive-css",b.type="text/css",b.styleSheet?b.styleSheet.cssText=a:b.appendChild(document.createTextNode(a)),(document.head||document.getElementsByTagName("head")[0]).appendChild(b)},g=function(a){if(/iconic-fluid/.test(a.getAttribute("class"))){var b,d=e(a),f=a.viewBox.baseVal.width/a.viewBox.baseVal.height;b=1===f?Math.min(d.width,d.height):1>f?d.width:d.height;var g;g=32>b?"iconic-sm":b>=32&&128>b?"iconic-md":"iconic-lg";var h=a.getAttribute("class"),i=c.test(h)?h.replace(c,g):h+" "+g;a.setAttribute("class",i)}},h=function(){var a=document.querySelectorAll(".injected-svg.iconic-fluid");Array.prototype.forEach.call(a,function(a){g(a)})};document.addEventListener("DOMContentLoaded",function(){f()}),window.addEventListener("resize",function(){h()}),b.exports={refresh:g,refreshAll:h}},{}],8:[function(b,c,d){!function(b,e){"use strict";function f(a){a=a.split(" ");for(var b={},c=a.length,d=[];c--;)b.hasOwnProperty(a[c])||(b[a[c]]=1,d.unshift(a[c]));return d.join(" ")}var g="file:"===b.location.protocol,h=e.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure","1.1"),i=Array.prototype.forEach||function(a,b){if(void 0===this||null===this||"function"!=typeof a)throw new TypeError;var c,d=this.length>>>0;for(c=0;d>c;++c)c in this&&a.call(b,this[c],c,this)},j={},k=0,l=[],m=[],n={},o=function(a){return a.cloneNode(!0)},p=function(a,b){m[a]=m[a]||[],m[a].push(b)},q=function(a){for(var b=0,c=m[a].length;c>b;b++)!function(b){setTimeout(function(){m[a][b](o(j[a]))},0)}(b)},r=function(a,c){if(void 0!==j[a])j[a]instanceof SVGSVGElement?c(o(j[a])):p(a,c);else{if(!b.XMLHttpRequest)return c("Browser does not support XMLHttpRequest"),!1;j[a]={},p(a,c);var d=new XMLHttpRequest;d.onreadystatechange=function(){if(4===d.readyState){if(404===d.status||null===d.responseXML)return c("Unable to load SVG file: "+a),g&&c("Note: SVG injection ajax calls do not work locally without adjusting security setting in your browser. Or consider using a local webserver."),c(),!1;if(!(200===d.status||g&&0===d.status))return c("There was a problem injecting the SVG: "+d.status+" "+d.statusText),!1;if(d.responseXML instanceof Document)j[a]=d.responseXML.documentElement;else if(DOMParser&&DOMParser instanceof Function){var b;try{var e=new DOMParser;b=e.parseFromString(d.responseText,"text/xml")}catch(f){b=void 0}if(!b||b.getElementsByTagName("parsererror").length)return c("Unable to parse SVG file: "+a),!1;j[a]=b.documentElement}q(a)}},d.open("GET",a),d.overrideMimeType&&d.overrideMimeType("text/xml"),d.send()}},s=function(a,c,d,e){var g=a.getAttribute("data-src")||a.getAttribute("src");if(!/svg$/i.test(g))return e("Attempted to inject a file with a non-svg extension: "+g),void 0;if(!h){var j=a.getAttribute("data-fallback")||a.getAttribute("data-png");return j?(a.setAttribute("src",j),e(null)):d?(a.setAttribute("src",d+"/"+g.split("/").pop().replace(".svg",".png")),e(null)):e("This browser does not support SVG and no PNG fallback was defined."),void 0}-1===l.indexOf(a)&&(l.push(a),a.setAttribute("src",""),r(g,function(d){if("undefined"==typeof d||"string"==typeof d)return e(d),!1;var h=a.getAttribute("id");h&&d.setAttribute("id",h);var j=a.getAttribute("title");j&&d.setAttribute("title",j);var m=[].concat(d.getAttribute("class")||[],"injected-svg",a.getAttribute("class")||[]).join(" ");d.setAttribute("class",f(m));var o=a.getAttribute("style");o&&d.setAttribute("style",o);var p=[].filter.call(a.attributes,function(a){return/^data-\w[\w\-]*$/.test(a.name)});i.call(p,function(a){a.name&&a.value&&d.setAttribute(a.name,a.value)});for(var q,r=d.querySelectorAll("defs clipPath[id]"),s=0,t=r.length;t>s;s++){q=r[s].id+"-"+k;for(var u=d.querySelectorAll('[clip-path*="'+r[s].id+'"]'),v=0,w=u.length;w>v;v++)u[v].setAttribute("clip-path","url(#"+q+")");r[s].id=q}d.removeAttribute("xmlns:a");for(var x,y,z=d.querySelectorAll("script"),A=[],B=0,C=z.length;C>B;B++)y=z[B].getAttribute("type"),y&&"application/ecmascript"!==y&&"application/javascript"!==y||(x=z[B].innerText||z[B].textContent,A.push(x),d.removeChild(z[B]));if(A.length>0&&("always"===c||"once"===c&&!n[g])){for(var D=0,E=A.length;E>D;D++)new Function(A[D])(b);n[g]=!0}a.parentNode.replaceChild(d,a),delete l[l.indexOf(a)],a=null,k++,e(d)}))},t=function(a,b,c){b=b||{};var d=b.evalScripts||"always",e=b.pngFallback||!1,f=b.each;if(void 0!==a.length){var g=0;i.call(a,function(b){s(b,d,e,function(b){f&&"function"==typeof f&&f(b),c&&a.length===++g&&c(g)})})}else a?s(a,d,e,function(b){f&&"function"==typeof f&&f(b),c&&c(1),a=null}):c&&c(0)};"object"==typeof c&&"object"==typeof c.exports?c.exports=d=t:"function"==typeof a&&a.amd?a(function(){return t}):"object"==typeof b&&(b.SVGInjector=t)}(window,document)},{}]},{},[1])(1)});
+angular.module('markdown', [])
+  .directive('markdown', function() {
+    return {
+      restrict: 'A',
+      link: function(scope, element, attrs, controller) {
+        element.html(marked(element.html()));
+      }
+    };
+
+});
+
+'use strict';
+
+(function(){
+  var svgDirectives = {};
+
+  angular.forEach([
+      'clipPath',
+      'colorProfile',
+      'src',
+      'cursor',
+      'fill',
+      'filter',
+      'marker',
+      'markerStart',
+      'markerMid',
+      'markerEnd',
+      'mask',
+      'stroke'
+    ],
+    function(attr) {
+      svgDirectives[attr] = [
+          '$rootScope',
+          '$location',
+          '$interpolate',
+          '$sniffer',
+          'urlResolve',
+          'computeSVGAttrValue',
+          'svgAttrExpressions',
+          function(
+              $rootScope,
+              $location,
+              $interpolate,
+              $sniffer,
+              urlResolve,
+              computeSVGAttrValue,
+              svgAttrExpressions) {
+            return {
+              restrict: 'A',
+              link: function(scope, element, attrs) {
+                var initialUrl;
+
+                //Only apply to svg elements to avoid unnecessary observing
+                //Check that is in html5Mode and that history is supported
+                if ((!svgAttrExpressions.SVG_ELEMENT.test(element[0] &&
+                    element[0].toString())) ||
+                  !$location.$$html5 ||
+                  !$sniffer.history) return;
+
+                //Assumes no expressions, since svg is unforgiving of xml violations
+                initialUrl = attrs[attr];
+                attrs.$observe(attr, updateValue);
+                $rootScope.$on('$locationChangeSuccess', updateValue);
+
+                function updateValue () {
+                  var newVal = computeSVGAttrValue(initialUrl);
+                  //Prevent recursive updating
+                  if (newVal && attrs[attr] !== newVal) attrs.$set(attr, newVal);
+                }
+              }
+            };
+          }];
+  });
+
+  angular.module('ngSVGAttributes', []).
+    factory('urlResolve', [function() {
+      //Duplicate of urlResolve & urlParsingNode in angular core
+      var urlParsingNode = document.createElement('a');
+      return function urlResolve(url) {
+        urlParsingNode.setAttribute('href', url);
+        return urlParsingNode;
+      };
+    }]).
+    value('svgAttrExpressions', {
+      FUNC_URI: /^url\((.*)\)$/,
+      SVG_ELEMENT: /SVG[a-zA-Z]*Element/,
+      HASH_PART: /#.*/
+    }).
+    factory('computeSVGAttrValue', [
+                '$location', '$sniffer', 'svgAttrExpressions', 'urlResolve',
+        function($location,   $sniffer,   svgAttrExpressions,   urlResolve) {
+          return function computeSVGAttrValue(url) {
+            var match, fullUrl;
+            if (match = svgAttrExpressions.FUNC_URI.exec(url)) {
+              //hash in html5Mode, forces to be relative to current url instead of base
+              if (match[1].indexOf('#') === 0) {
+                fullUrl = $location.absUrl().
+                  replace(svgAttrExpressions.HASH_PART, '') +
+                  match[1];
+              }
+              //Presumably links to external SVG document
+              else {
+                fullUrl = urlResolve(match[1]);
+              }
+            }
+            return fullUrl ? 'url(' + fullUrl + ')' : null;
+          };
+        }
+      ]
+    ).
+    directive(svgDirectives);
+}());
+
 (function() {
   'use strict';
 
@@ -45811,119 +46741,6 @@ includeDirFactory = function (dirName) {
   }
 })();
 
-angular.module('markdown', [])
-  .directive('markdown', function() {
-    return {
-      restrict: 'A',
-      link: function(scope, element, attrs, controller) {
-        element.html(marked(element.html()));
-      }
-    };
-
-});
-
-'use strict';
-
-(function(){
-  var svgDirectives = {};
-
-  angular.forEach([
-      'clipPath',
-      'colorProfile',
-      'src',
-      'cursor',
-      'fill',
-      'filter',
-      'marker',
-      'markerStart',
-      'markerMid',
-      'markerEnd',
-      'mask',
-      'stroke'
-    ],
-    function(attr) {
-      svgDirectives[attr] = [
-          '$rootScope',
-          '$location',
-          '$interpolate',
-          '$sniffer',
-          'urlResolve',
-          'computeSVGAttrValue',
-          'svgAttrExpressions',
-          function(
-              $rootScope,
-              $location,
-              $interpolate,
-              $sniffer,
-              urlResolve,
-              computeSVGAttrValue,
-              svgAttrExpressions) {
-            return {
-              restrict: 'A',
-              link: function(scope, element, attrs) {
-                var initialUrl;
-
-                //Only apply to svg elements to avoid unnecessary observing
-                //Check that is in html5Mode and that history is supported
-                if ((!svgAttrExpressions.SVG_ELEMENT.test(element[0] &&
-                    element[0].toString())) ||
-                  !$location.$$html5 ||
-                  !$sniffer.history) return;
-
-                //Assumes no expressions, since svg is unforgiving of xml violations
-                initialUrl = attrs[attr];
-                attrs.$observe(attr, updateValue);
-                $rootScope.$on('$locationChangeSuccess', updateValue);
-
-                function updateValue () {
-                  var newVal = computeSVGAttrValue(initialUrl);
-                  //Prevent recursive updating
-                  if (newVal && attrs[attr] !== newVal) attrs.$set(attr, newVal);
-                }
-              }
-            };
-          }];
-  });
-
-  angular.module('ngSVGAttributes', []).
-    factory('urlResolve', [function() {
-      //Duplicate of urlResolve & urlParsingNode in angular core
-      var urlParsingNode = document.createElement('a');
-      return function urlResolve(url) {
-        urlParsingNode.setAttribute('href', url);
-        return urlParsingNode;
-      };
-    }]).
-    value('svgAttrExpressions', {
-      FUNC_URI: /^url\((.*)\)$/,
-      SVG_ELEMENT: /SVG[a-zA-Z]*Element/,
-      HASH_PART: /#.*/
-    }).
-    factory('computeSVGAttrValue', [
-                '$location', '$sniffer', 'svgAttrExpressions', 'urlResolve',
-        function($location,   $sniffer,   svgAttrExpressions,   urlResolve) {
-          return function computeSVGAttrValue(url) {
-            var match, fullUrl;
-            if (match = svgAttrExpressions.FUNC_URI.exec(url)) {
-              //hash in html5Mode, forces to be relative to current url instead of base
-              if (match[1].indexOf('#') === 0) {
-                fullUrl = $location.absUrl().
-                  replace(svgAttrExpressions.HASH_PART, '') +
-                  match[1];
-              }
-              //Presumably links to external SVG document
-              else {
-                fullUrl = urlResolve(match[1]);
-              }
-            }
-            return fullUrl ? 'url(' + fullUrl + ')' : null;
-          };
-        }
-      ]
-    ).
-    directive(svgDirectives);
-}());
-
 (function() {
   'use strict';
 
@@ -46505,263 +47322,327 @@ angular.module('markdown', [])
   }
 })();
 
-(function () {
+(function() {
   'use strict';
 
-  angular.module('foundation.iconic', [])
-    .provider('Iconic', Iconic)
-    .directive('zfIconic', zfIconic)
+  angular.module('foundation.modal', ['foundation.core'])
+    .directive('zfModal', modalDirective)
+    .factory('ModalFactory', ModalFactory)
+    .service('FoundationModal', FoundationModal)
   ;
 
-  // iconic wrapper
-  function Iconic() {
-    // default path
-    var assetPath = 'assets/img/iconic/';
+  FoundationModal.$inject = ['FoundationApi', 'ModalFactory'];
 
-    /**
-     * Sets the path used to locate the iconic SVG files
-     * @param {string} path - the base path used to locate the iconic SVG files
-     */
-    this.setAssetPath = function (path) {
-      assetPath = angular.isString(path) ? path : assetPath;
-    };
+  function FoundationModal(foundationApi, ModalFactory) {
+    var service    = {};
 
-    /**
-     * Service implementation
-     * @returns {{}}
-     */
-    this.$get = function () {
-      var iconicObject = new IconicJS();
+    service.activate = activate;
+    service.deactivate = deactivate;
+    service.newModal = newModal;
 
-      var service = {
-        getAccess: getAccess,
-        getAssetPath: getAssetPath
-      };
+    return service;
 
-      return service;
+    //target should be element ID
+    function activate(target) {
+      foundationApi.publish(target, 'show');
+    }
 
-      /**
-       *
-       * @returns {Window.IconicJS}
-       */
-      function getAccess() {
-        return iconicObject;
-      }
+    //target should be element ID
+    function deactivate(target) {
+      foundationApi.publish(target, 'hide');
+    }
 
-      /**
-       *
-       * @returns {string}
-       */
-      function getAssetPath() {
-        return assetPath;
-      }
-    };
+    //new modal has to be controlled via the new instance
+    function newModal(config) {
+      return new ModalFactory(config);
+    }
   }
 
-  zfIconic.$inject = ['Iconic', 'FoundationApi', '$compile'];
+  modalDirective.$inject = ['FoundationApi'];
 
-  function zfIconic(iconic, foundationApi, $compile) {
+  function modalDirective(foundationApi) {
+
     var directive = {
-      restrict: 'A',
-      template: '<img ng-transclude>',
+      restrict: 'EA',
+      templateUrl: 'components/modal/modal.html',
       transclude: true,
+      scope: true,
       replace: true,
-      scope: {
-        dynSrc: '=?',
-        dynIcon: '=?',
-        dynIconAttrs: '=?',
-        size: '@?',
-        icon: '@',
-        iconDir: '@?',
-        iconAttrs: '=?'
-      },
       compile: compile
     };
 
     return directive;
 
-    function compile() {
-      var contents, origAttrs, lastIconAttrs, assetPath;
+    function compile(tElement, tAttrs, transclude) {
+      var type = 'modal';
 
       return {
         pre: preLink,
         post: postLink
       };
 
-      function preLink(scope, element, attrs) {
-        var iconAttrsObj, iconAttr;
-
-        if (scope.iconDir) {
-          // path set via attribute
-          assetPath = scope.iconDir;
-        } else {
-          // default path
-          assetPath = iconic.getAssetPath();
-        }
-        // make sure ends with /
-        if (assetPath.charAt(assetPath.length - 1) !== '/') {
-          assetPath += '/';
-        }
-
-        if (scope.dynSrc) {
-          attrs.$set('data-src', scope.dynSrc);
-        } else if (scope.dynIcon) {
-          attrs.$set('data-src', assetPath + scope.dynIcon + '.svg');
-        } else {
-          if (scope.icon) {
-            attrs.$set('data-src', assetPath + scope.icon + '.svg');
-          } else {
-            // To support expressions on data-src
-            attrs.$set('data-src', attrs.src);
-          }
-        }
-
-        // check if size already added as class
-        if (!element.hasClass('iconic-sm') && !element.hasClass('iconic-md') && !element.hasClass('iconic-lg')) {
-          var iconicClass;
-          switch (scope.size) {
-            case 'small':
-              iconicClass = 'iconic-sm';
-              break;
-            case 'medium':
-              iconicClass = 'iconic-md';
-              break;
-            case 'large':
-              iconicClass = 'iconic-lg';
-              break;
-            default:
-              iconicClass = 'iconic-fluid';
-          }
-          element.addClass(iconicClass);
-        }
-
-        // add static icon attributes to iconic element
-        if (scope.iconAttrs) {
-          iconAttrsObj = angular.fromJson(scope.iconAttrs);
-          for (iconAttr in iconAttrsObj) {
-            // add data- to attribute name if not already present
-            attrs.$set(addDataDash(iconAttr), iconAttrsObj[iconAttr]);
-          }
-        }
-
-        // save contents and attributes of un-inject html, to use for dynamic re-injection
-        contents = element[0].outerHTML;
-        origAttrs = element[0].attributes;
+      function preLink(scope, iElement, iAttrs, controller) {
+          iAttrs.$set('zf-closable', type);
       }
 
       function postLink(scope, element, attrs) {
-        var svgElement, ico = iconic.getAccess();
+        var dialog = angular.element(element.children()[0]);
+        var animateFn = attrs.hasOwnProperty('zfAdvise') ? foundationApi.animateAndAdvise : foundationApi.animate;
 
-        injectSvg(element[0]);
+        scope.active = scope.active || false;
+        scope.overlay = attrs.overlay === 'false' ? false : true;
+        scope.overlayClose = attrs.overlayClose === 'false' ? false : true;
 
-        foundationApi.subscribe('resize', function () {
-          // only run update on current element
-          ico.update(element[0]);
+        var animationIn = attrs.animationIn || 'fadeIn';
+        var animationOut = attrs.animationOut || 'fadeOut';
+
+        var overlayIn = 'fadeIn';
+        var overlayOut = 'fadeOut';
+
+        scope.hideOverlay = function() {
+          if(scope.overlayClose) {
+            foundationApi.publish(attrs.id, 'close');
+          }
+        };
+
+        scope.hide = function() {
+          scope.active = false;
+          animate();
+          return;
+        };
+
+        scope.show = function() {
+          scope.active = true;
+          animate();
+          dialog.tabIndex = -1;
+          dialog[0].focus();
+          return;
+        };
+
+        scope.toggle = function() {
+          scope.active = !scope.active;
+          animate();
+          return;
+        };
+
+        init();
+
+        //setup
+        foundationApi.subscribe(attrs.id, function(msg) {
+          if(msg === 'show' || msg === 'open') {
+            scope.show();
+          } else if (msg === 'close' || msg === 'hide') {
+            scope.hide();
+          } else if (msg === 'toggle') {
+            scope.toggle();
+          }
+
+          if (scope.$root && !scope.$root.$$phase) {
+            scope.$apply();
+          }
+
+          return;
         });
 
-        // handle dynamic updating of src
-        if (scope.dynSrc) {
-          scope.$watch('dynSrc', function (newVal, oldVal) {
-            if (newVal && newVal !== oldVal) {
-              reinjectSvg(scope.dynSrc, scope.dynIconAttrs);
-            }
-          });
-        }
-        // handle dynamic updating of icon
-        if (scope.dynIcon) {
-          scope.$watch('dynIcon', function (newVal, oldVal) {
-            if (newVal && newVal !== oldVal) {
-              reinjectSvg(assetPath + scope.dynIcon + '.svg', scope.dynIconAttrs);
-            }
-          });
-        }
-        // handle dynamic updating of icon attrs
-        scope.$watch('dynIconAttrs', function (newVal, oldVal) {
-          if (newVal && newVal !== oldVal) {
-            if (scope.dynSrc) {
-              reinjectSvg(scope.dynSrc, scope.dynIconAttrs);
-            } else {
-              reinjectSvg(assetPath + scope.dynIcon + '.svg', scope.dynIconAttrs);
-            }
+        function animate() {
+          //animate both overlay and dialog
+          if(!scope.overlay) {
+            element.css('background', 'transparent');
           }
-        });
 
-        function reinjectSvg(newSrc, newAttrs) {
-          var iconAttr;
+          // work around for modal animations
+          // due to a bug where the overlay fadeIn is essentially covering up
+          // the dialog's animation
+          if (!scope.active) {
+            animateFn(element, scope.active, overlayIn, overlayOut);
+          }
+          else {
+            element.addClass('is-active');
+          }
 
-          if (svgElement) {
-            // set html
-            svgElement.empty();
-            svgElement.append(angular.element(contents));
+          animateFn(dialog, scope.active, animationIn, animationOut);
+        }
 
-            // remove 'data-icon' attribute added by injector as it
-            // will cause issues with reinjection when changing icons
-            svgElement.removeAttr('data-icon');
-
-            // set new source
-            svgElement.attr('data-src', newSrc);
-
-            // add additional icon attributes to iconic element
-            if (newAttrs) {
-              // remove previously added attributes
-              if (lastIconAttrs) {
-                for (iconAttr in lastIconAttrs) {
-                  svgElement.removeAttr(addDataDash(iconAttr));
-                }
-              }
-
-              // add newly added attributes
-              for (iconAttr in newAttrs) {
-                // add data- to attribute name if not already present
-                svgElement.attr(addDataDash(iconAttr), newAttrs[iconAttr]);
-              }
-            }
-
-            // store current attrs
-            lastIconAttrs = newAttrs;
-
-            // reinject
-            injectSvg(svgElement[0]);
+        function init() {
+          if(scope.active) {
+            scope.show();
           }
         }
-
-        function injectSvg(element) {
-          ico.inject(element, {
-            each: function (injectedElem) {
-
-              var i, angElem, elemScope;
-
-              // wrap raw element
-              angElem = angular.element(injectedElem);
-
-              for(i = 0; i < origAttrs.length; i++) {
-                // check if attribute should be ignored
-                if (origAttrs[i].name !== 'zf-iconic' &&
-                  origAttrs[i].name !== 'ng-transclude' &&
-                  origAttrs[i].name !== 'icon' &&
-                  origAttrs[i].name !== 'src') {
-                  // check if attribute already exists on svg
-                  if (angular.isUndefined(angElem.attr(origAttrs[i].name))) {
-                    // add attribute to svg
-                    angElem.attr(origAttrs[i].name, origAttrs[i].value);
-                  }
-                }
-              }
-
-              // compile
-              elemScope = angElem.scope();
-              if (elemScope) {
-                svgElement = $compile(angElem)(elemScope);
-              }
-            }
-          });
-        }
-      }
-
-      function addDataDash(attr) {
-        return attr.indexOf('data-') !== 0 ? 'data-' + attr : attr;
       }
     }
+  }
+
+  ModalFactory.$inject = ['$http', '$templateCache', '$rootScope', '$compile', '$timeout', '$q', 'FoundationApi'];
+
+  function ModalFactory($http, $templateCache, $rootScope, $compile, $timeout, $q, foundationApi) {
+    return modalFactory;
+
+    function modalFactory(config) {
+      var self = this, //for prototype functions
+          container = angular.element(config.container || document.body),
+          id = config.id || foundationApi.generateUuid(),
+          attached = false,
+          destroyed = false,
+          html,
+          element,
+          fetched,
+          scope,
+          contentScope
+      ;
+
+      var props = [
+        'animationIn',
+        'animationOut',
+        'overlay',
+        'overlayClose',
+        'class'
+      ];
+
+      if(config.templateUrl) {
+        //get template
+        fetched = $http.get(config.templateUrl, {
+          cache: $templateCache
+        }).then(function (response) {
+          html = response.data;
+          assembleDirective();
+        });
+
+      } else if(config.template) {
+        //use provided template
+        fetched = true;
+        html = config.template;
+        assembleDirective();
+      }
+
+      self.activate = activate;
+      self.deactivate = deactivate;
+      self.toggle = toggle;
+      self.destroy = destroy;
+
+
+      return {
+        isActive: isActive,
+        activate: activate,
+        deactivate: deactivate,
+        toggle: toggle,
+        destroy: destroy
+      };
+
+      function checkStatus() {
+        if(destroyed) {
+          throw "Error: Modal was destroyed. Delete the object and create a new ModalFactory instance."
+        }
+      }
+
+      function isActive() {
+        return !destroyed && scope && scope.active === true;
+      }
+
+      function activate() {
+        checkStatus();
+        $timeout(function() {
+          init(true);
+          foundationApi.publish(id, 'show');
+        }, 0, false);
+      }
+
+      function deactivate() {
+        checkStatus();
+        $timeout(function() {
+          init(false);
+          foundationApi.publish(id, 'hide');
+        }, 0, false);
+      }
+
+      function toggle() {
+        checkStatus();
+        $timeout(function() {
+          init(true);
+          foundationApi.publish(id, 'toggle');
+        }, 0, false);
+      }
+
+      function init(state) {
+        $q.when(fetched).then(function() {
+          if(!attached && html.length > 0) {
+            var modalEl = container.append(element);
+
+            $compile(element)(scope);
+
+            attached = true;
+          }
+
+          scope.active = state;
+        });
+      }
+
+      function assembleDirective() {
+        // check for duplicate elements to prevent factory from cloning modals
+        if (document.getElementById(id)) {
+          return;
+        }
+
+        html = '<zf-modal id="' + id + '">' + html + '</zf-modal>';
+
+        element = angular.element(html);
+
+        scope = $rootScope.$new();
+
+        // account for directive attributes and modal classes
+        for(var i = 0; i < props.length; i++) {
+          var prop = props[i];
+
+          if(config[prop]) {
+            switch (prop) {
+              case 'animationIn':
+                element.attr('animation-in', config[prop]);
+                break;
+              case 'animationOut':
+                element.attr('animation-out', config[prop]);
+                break;
+              case 'overlayClose':
+                element.attr('overlay-close', config[prop] === 'false' ? 'false' : 'true'); // must be string, see postLink() above
+                break;
+              case 'class':
+                if (angular.isString(config[prop])) {
+                  config[prop].split(' ').forEach(function(klass) {
+                    element.addClass(klass);
+                  });
+                } else if (angular.isArray(config[prop])) {
+                  config[prop].forEach(function(klass) {
+                    element.addClass(klass);
+                  });
+                }
+                break;
+              default:
+                element.attr(prop, config[prop]);
+                break;
+            }
+          }
+        }
+        // access view scope variables
+        if (config.contentScope) {
+          contentScope = config.contentScope;
+          for (var prop in config.contentScope) {
+            if (config.contentScope.hasOwnProperty(prop)) {
+              scope[prop] = config.contentScope[prop];
+            }
+          }
+        }
+      }
+
+      function destroy() {
+        self.deactivate();
+        $timeout(function() {
+          scope.$destroy();
+          element.remove();
+          destroyed = true;
+        }, 0, false);
+        foundationApi.unsubscribe(id);
+      }
+
+    }
+
   }
 
 })();
@@ -47455,327 +48336,263 @@ angular.module('markdown', [])
   }
 })();
 
-(function() {
+(function () {
   'use strict';
 
-  angular.module('foundation.modal', ['foundation.core'])
-    .directive('zfModal', modalDirective)
-    .factory('ModalFactory', ModalFactory)
-    .service('FoundationModal', FoundationModal)
+  angular.module('foundation.iconic', [])
+    .provider('Iconic', Iconic)
+    .directive('zfIconic', zfIconic)
   ;
 
-  FoundationModal.$inject = ['FoundationApi', 'ModalFactory'];
+  // iconic wrapper
+  function Iconic() {
+    // default path
+    var assetPath = 'assets/img/iconic/';
 
-  function FoundationModal(foundationApi, ModalFactory) {
-    var service    = {};
+    /**
+     * Sets the path used to locate the iconic SVG files
+     * @param {string} path - the base path used to locate the iconic SVG files
+     */
+    this.setAssetPath = function (path) {
+      assetPath = angular.isString(path) ? path : assetPath;
+    };
 
-    service.activate = activate;
-    service.deactivate = deactivate;
-    service.newModal = newModal;
+    /**
+     * Service implementation
+     * @returns {{}}
+     */
+    this.$get = function () {
+      var iconicObject = new IconicJS();
 
-    return service;
+      var service = {
+        getAccess: getAccess,
+        getAssetPath: getAssetPath
+      };
 
-    //target should be element ID
-    function activate(target) {
-      foundationApi.publish(target, 'show');
-    }
+      return service;
 
-    //target should be element ID
-    function deactivate(target) {
-      foundationApi.publish(target, 'hide');
-    }
+      /**
+       *
+       * @returns {Window.IconicJS}
+       */
+      function getAccess() {
+        return iconicObject;
+      }
 
-    //new modal has to be controlled via the new instance
-    function newModal(config) {
-      return new ModalFactory(config);
-    }
+      /**
+       *
+       * @returns {string}
+       */
+      function getAssetPath() {
+        return assetPath;
+      }
+    };
   }
 
-  modalDirective.$inject = ['FoundationApi'];
+  zfIconic.$inject = ['Iconic', 'FoundationApi', '$compile'];
 
-  function modalDirective(foundationApi) {
-
+  function zfIconic(iconic, foundationApi, $compile) {
     var directive = {
-      restrict: 'EA',
-      templateUrl: 'components/modal/modal.html',
+      restrict: 'A',
+      template: '<img ng-transclude>',
       transclude: true,
-      scope: true,
       replace: true,
+      scope: {
+        dynSrc: '=?',
+        dynIcon: '=?',
+        dynIconAttrs: '=?',
+        size: '@?',
+        icon: '@',
+        iconDir: '@?',
+        iconAttrs: '=?'
+      },
       compile: compile
     };
 
     return directive;
 
-    function compile(tElement, tAttrs, transclude) {
-      var type = 'modal';
+    function compile() {
+      var contents, origAttrs, lastIconAttrs, assetPath;
 
       return {
         pre: preLink,
         post: postLink
       };
 
-      function preLink(scope, iElement, iAttrs, controller) {
-          iAttrs.$set('zf-closable', type);
+      function preLink(scope, element, attrs) {
+        var iconAttrsObj, iconAttr;
+
+        if (scope.iconDir) {
+          // path set via attribute
+          assetPath = scope.iconDir;
+        } else {
+          // default path
+          assetPath = iconic.getAssetPath();
+        }
+        // make sure ends with /
+        if (assetPath.charAt(assetPath.length - 1) !== '/') {
+          assetPath += '/';
+        }
+
+        if (scope.dynSrc) {
+          attrs.$set('data-src', scope.dynSrc);
+        } else if (scope.dynIcon) {
+          attrs.$set('data-src', assetPath + scope.dynIcon + '.svg');
+        } else {
+          if (scope.icon) {
+            attrs.$set('data-src', assetPath + scope.icon + '.svg');
+          } else {
+            // To support expressions on data-src
+            attrs.$set('data-src', attrs.src);
+          }
+        }
+
+        // check if size already added as class
+        if (!element.hasClass('iconic-sm') && !element.hasClass('iconic-md') && !element.hasClass('iconic-lg')) {
+          var iconicClass;
+          switch (scope.size) {
+            case 'small':
+              iconicClass = 'iconic-sm';
+              break;
+            case 'medium':
+              iconicClass = 'iconic-md';
+              break;
+            case 'large':
+              iconicClass = 'iconic-lg';
+              break;
+            default:
+              iconicClass = 'iconic-fluid';
+          }
+          element.addClass(iconicClass);
+        }
+
+        // add static icon attributes to iconic element
+        if (scope.iconAttrs) {
+          iconAttrsObj = angular.fromJson(scope.iconAttrs);
+          for (iconAttr in iconAttrsObj) {
+            // add data- to attribute name if not already present
+            attrs.$set(addDataDash(iconAttr), iconAttrsObj[iconAttr]);
+          }
+        }
+
+        // save contents and attributes of un-inject html, to use for dynamic re-injection
+        contents = element[0].outerHTML;
+        origAttrs = element[0].attributes;
       }
 
       function postLink(scope, element, attrs) {
-        var dialog = angular.element(element.children()[0]);
-        var animateFn = attrs.hasOwnProperty('zfAdvise') ? foundationApi.animateAndAdvise : foundationApi.animate;
+        var svgElement, ico = iconic.getAccess();
 
-        scope.active = scope.active || false;
-        scope.overlay = attrs.overlay === 'false' ? false : true;
-        scope.overlayClose = attrs.overlayClose === 'false' ? false : true;
+        injectSvg(element[0]);
 
-        var animationIn = attrs.animationIn || 'fadeIn';
-        var animationOut = attrs.animationOut || 'fadeOut';
-
-        var overlayIn = 'fadeIn';
-        var overlayOut = 'fadeOut';
-
-        scope.hideOverlay = function() {
-          if(scope.overlayClose) {
-            foundationApi.publish(attrs.id, 'close');
-          }
-        };
-
-        scope.hide = function() {
-          scope.active = false;
-          animate();
-          return;
-        };
-
-        scope.show = function() {
-          scope.active = true;
-          animate();
-          dialog.tabIndex = -1;
-          dialog[0].focus();
-          return;
-        };
-
-        scope.toggle = function() {
-          scope.active = !scope.active;
-          animate();
-          return;
-        };
-
-        init();
-
-        //setup
-        foundationApi.subscribe(attrs.id, function(msg) {
-          if(msg === 'show' || msg === 'open') {
-            scope.show();
-          } else if (msg === 'close' || msg === 'hide') {
-            scope.hide();
-          } else if (msg === 'toggle') {
-            scope.toggle();
-          }
-
-          if (scope.$root && !scope.$root.$$phase) {
-            scope.$apply();
-          }
-
-          return;
+        foundationApi.subscribe('resize', function () {
+          // only run update on current element
+          ico.update(element[0]);
         });
 
-        function animate() {
-          //animate both overlay and dialog
-          if(!scope.overlay) {
-            element.css('background', 'transparent');
-          }
-
-          // work around for modal animations
-          // due to a bug where the overlay fadeIn is essentially covering up
-          // the dialog's animation
-          if (!scope.active) {
-            animateFn(element, scope.active, overlayIn, overlayOut);
-          }
-          else {
-            element.addClass('is-active');
-          }
-
-          animateFn(dialog, scope.active, animationIn, animationOut);
+        // handle dynamic updating of src
+        if (scope.dynSrc) {
+          scope.$watch('dynSrc', function (newVal, oldVal) {
+            if (newVal && newVal !== oldVal) {
+              reinjectSvg(scope.dynSrc, scope.dynIconAttrs);
+            }
+          });
         }
-
-        function init() {
-          if(scope.active) {
-            scope.show();
-          }
+        // handle dynamic updating of icon
+        if (scope.dynIcon) {
+          scope.$watch('dynIcon', function (newVal, oldVal) {
+            if (newVal && newVal !== oldVal) {
+              reinjectSvg(assetPath + scope.dynIcon + '.svg', scope.dynIconAttrs);
+            }
+          });
         }
-      }
-    }
-  }
-
-  ModalFactory.$inject = ['$http', '$templateCache', '$rootScope', '$compile', '$timeout', '$q', 'FoundationApi'];
-
-  function ModalFactory($http, $templateCache, $rootScope, $compile, $timeout, $q, foundationApi) {
-    return modalFactory;
-
-    function modalFactory(config) {
-      var self = this, //for prototype functions
-          container = angular.element(config.container || document.body),
-          id = config.id || foundationApi.generateUuid(),
-          attached = false,
-          destroyed = false,
-          html,
-          element,
-          fetched,
-          scope,
-          contentScope
-      ;
-
-      var props = [
-        'animationIn',
-        'animationOut',
-        'overlay',
-        'overlayClose',
-        'class'
-      ];
-
-      if(config.templateUrl) {
-        //get template
-        fetched = $http.get(config.templateUrl, {
-          cache: $templateCache
-        }).then(function (response) {
-          html = response.data;
-          assembleDirective();
+        // handle dynamic updating of icon attrs
+        scope.$watch('dynIconAttrs', function (newVal, oldVal) {
+          if (newVal && newVal !== oldVal) {
+            if (scope.dynSrc) {
+              reinjectSvg(scope.dynSrc, scope.dynIconAttrs);
+            } else {
+              reinjectSvg(assetPath + scope.dynIcon + '.svg', scope.dynIconAttrs);
+            }
+          }
         });
 
-      } else if(config.template) {
-        //use provided template
-        fetched = true;
-        html = config.template;
-        assembleDirective();
-      }
+        function reinjectSvg(newSrc, newAttrs) {
+          var iconAttr;
 
-      self.activate = activate;
-      self.deactivate = deactivate;
-      self.toggle = toggle;
-      self.destroy = destroy;
+          if (svgElement) {
+            // set html
+            svgElement.empty();
+            svgElement.append(angular.element(contents));
 
+            // remove 'data-icon' attribute added by injector as it
+            // will cause issues with reinjection when changing icons
+            svgElement.removeAttr('data-icon');
 
-      return {
-        isActive: isActive,
-        activate: activate,
-        deactivate: deactivate,
-        toggle: toggle,
-        destroy: destroy
-      };
+            // set new source
+            svgElement.attr('data-src', newSrc);
 
-      function checkStatus() {
-        if(destroyed) {
-          throw "Error: Modal was destroyed. Delete the object and create a new ModalFactory instance."
-        }
-      }
-
-      function isActive() {
-        return !destroyed && scope && scope.active === true;
-      }
-
-      function activate() {
-        checkStatus();
-        $timeout(function() {
-          init(true);
-          foundationApi.publish(id, 'show');
-        }, 0, false);
-      }
-
-      function deactivate() {
-        checkStatus();
-        $timeout(function() {
-          init(false);
-          foundationApi.publish(id, 'hide');
-        }, 0, false);
-      }
-
-      function toggle() {
-        checkStatus();
-        $timeout(function() {
-          init(true);
-          foundationApi.publish(id, 'toggle');
-        }, 0, false);
-      }
-
-      function init(state) {
-        $q.when(fetched).then(function() {
-          if(!attached && html.length > 0) {
-            var modalEl = container.append(element);
-
-            $compile(element)(scope);
-
-            attached = true;
-          }
-
-          scope.active = state;
-        });
-      }
-
-      function assembleDirective() {
-        // check for duplicate elements to prevent factory from cloning modals
-        if (document.getElementById(id)) {
-          return;
-        }
-
-        html = '<zf-modal id="' + id + '">' + html + '</zf-modal>';
-
-        element = angular.element(html);
-
-        scope = $rootScope.$new();
-
-        // account for directive attributes and modal classes
-        for(var i = 0; i < props.length; i++) {
-          var prop = props[i];
-
-          if(config[prop]) {
-            switch (prop) {
-              case 'animationIn':
-                element.attr('animation-in', config[prop]);
-                break;
-              case 'animationOut':
-                element.attr('animation-out', config[prop]);
-                break;
-              case 'overlayClose':
-                element.attr('overlay-close', config[prop] === 'false' ? 'false' : 'true'); // must be string, see postLink() above
-                break;
-              case 'class':
-                if (angular.isString(config[prop])) {
-                  config[prop].split(' ').forEach(function(klass) {
-                    element.addClass(klass);
-                  });
-                } else if (angular.isArray(config[prop])) {
-                  config[prop].forEach(function(klass) {
-                    element.addClass(klass);
-                  });
+            // add additional icon attributes to iconic element
+            if (newAttrs) {
+              // remove previously added attributes
+              if (lastIconAttrs) {
+                for (iconAttr in lastIconAttrs) {
+                  svgElement.removeAttr(addDataDash(iconAttr));
                 }
-                break;
-              default:
-                element.attr(prop, config[prop]);
-                break;
+              }
+
+              // add newly added attributes
+              for (iconAttr in newAttrs) {
+                // add data- to attribute name if not already present
+                svgElement.attr(addDataDash(iconAttr), newAttrs[iconAttr]);
+              }
             }
+
+            // store current attrs
+            lastIconAttrs = newAttrs;
+
+            // reinject
+            injectSvg(svgElement[0]);
           }
         }
-        // access view scope variables
-        if (config.contentScope) {
-          contentScope = config.contentScope;
-          for (var prop in config.contentScope) {
-            if (config.contentScope.hasOwnProperty(prop)) {
-              scope[prop] = config.contentScope[prop];
+
+        function injectSvg(element) {
+          ico.inject(element, {
+            each: function (injectedElem) {
+
+              var i, angElem, elemScope;
+
+              // wrap raw element
+              angElem = angular.element(injectedElem);
+
+              for(i = 0; i < origAttrs.length; i++) {
+                // check if attribute should be ignored
+                if (origAttrs[i].name !== 'zf-iconic' &&
+                  origAttrs[i].name !== 'ng-transclude' &&
+                  origAttrs[i].name !== 'icon' &&
+                  origAttrs[i].name !== 'src') {
+                  // check if attribute already exists on svg
+                  if (angular.isUndefined(angElem.attr(origAttrs[i].name))) {
+                    // add attribute to svg
+                    angElem.attr(origAttrs[i].name, origAttrs[i].value);
+                  }
+                }
+              }
+
+              // compile
+              elemScope = angElem.scope();
+              if (elemScope) {
+                svgElement = $compile(angElem)(elemScope);
+              }
             }
-          }
+          });
         }
       }
 
-      function destroy() {
-        self.deactivate();
-        $timeout(function() {
-          scope.$destroy();
-          element.remove();
-          destroyed = true;
-        }, 0, false);
-        foundationApi.unsubscribe(id);
+      function addDataDash(attr) {
+        return attr.indexOf('data-') !== 0 ? 'data-' + attr : attr;
       }
-
     }
-
   }
 
 })();
