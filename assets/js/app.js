@@ -6,7 +6,7 @@
     'ngResource',
     'ngAnimate',
     'hljs',
-    //foundation
+    'angularMoment',
     'foundation',
     'foundation.dynamicRouting',
     'foundation.dynamicRouting.animations'
@@ -72,7 +72,7 @@
        function ($scope, $stateParams, $http) {
     $http({
       method: 'GET',
-      url: 'https://cors-anywhere.herokuapp.com/http://acid-api.technosophos.me:7745/v1/projects',
+      url: baseURL + '/v1/projects',
       isArray: true,
       headers: {
         'Accept': 'application/json, text/javascript',
@@ -91,7 +91,7 @@
     var currentProject = $stateParams;
 
     $http({method: 'GET',
-      url: 'https://cors-anywhere.herokuapp.com/http://acid-api.technosophos.me:7745/v1/project/' + currentProject.id,
+      url: baseURL + '/v1/project/' + currentProject.id,
       isArray: true,
       headers: {
         'Accept': 'application/json, text/javascript',
@@ -105,6 +105,21 @@
     },
       function errorCallback(response) {}
     );
+
+    $scope.providers = [
+      {
+        name : 'github'
+      },
+      {
+        name : 'brigade-cli'
+      },
+      {
+        name : 'slack'
+      },
+      {
+        name : 'trello'
+      }
+    ];
   }]);
 
   app.controller("buildsController", ['$scope', '$stateParams', '$http',
@@ -112,7 +127,7 @@
     var currentProject = $stateParams;
 
     $http({method: 'GET',
-      url: 'https://cors-anywhere.herokuapp.com/http://acid-api.technosophos.me:7745/v1/project/' + currentProject.id + '/builds',
+      url: baseURL + '/v1/project/' + currentProject.id + '/builds',
       headers: {
         'Accept': 'application/json, text/javascript',
         'Content-Type': 'application/json; charset=utf-8'
@@ -130,14 +145,14 @@
     var currentBuild = $stateParams;
 
     $http({method: 'GET',
-      url: 'https://cors-anywhere.herokuapp.com/http://acid-api.technosophos.me:7745/v1/build/' + currentBuild.id,
+      url: baseURL + '/v1/build/' + currentBuild.id,
       headers: {
         'Accept': 'application/json, text/javascript',
         'Content-Type': 'application/json; charset=utf-8'
       },
       isArray: true
     }).then(function successCallback(response) {
-        $scope.build = response.data;
+      $scope.build = response.data;
     },
       function errorCallback(response) {}
     );
@@ -148,7 +163,7 @@
     var currentBuild = $stateParams;
 
     $http({method: 'GET',
-      url: 'https://cors-anywhere.herokuapp.com/http://acid-api.technosophos.me:7745/v1/build/' + currentBuild.id + '/jobs',
+      url: baseURL + '/v1/build/' + currentBuild.id + '/jobs',
       headers: {
         'Accept': 'application/json, text/javascript',
         'Content-Type': 'application/json; charset=utf-8'
@@ -167,7 +182,7 @@
     var currentJobID = $stateParams.id;
 
     $http({method: 'GET',
-      url: 'https://cors-anywhere.herokuapp.com/http://acid-api.technosophos.me:7745/v1/job/' + currentJobID,
+      url: baseURL + '/v1/job/' + currentJobID,
       headers: {
         'Accept': 'application/json, text/javascript',
         'Content-Type': 'application/json; charset=utf-8'
@@ -186,7 +201,7 @@
     var currentJobID = $scope.job.id;
 
     $http({method: 'GET',
-      url: 'https://cors-anywhere.herokuapp.com/http://acid-api.technosophos.me:7745/v1/job/' + currentJobID + '/logs?stream=true',
+      url: baseURL + '/v1/job/' + currentJobID + '/logs?stream=true',
       responseType: 'text',
       headers: {
         'Accept': 'plain/text, text/javascript',
@@ -265,3 +280,10 @@
     };
   });
 })();
+
+/*
+ * This file contains the settings for the application.
+ * Settings MUST be stored in a separate directory, because this directory may
+ * be mounted from a different filesystem
+ */
+const baseURL = 'https://cors-anywhere.herokuapp.com/http://acid-api.technosophos.me:7745'
