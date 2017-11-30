@@ -9050,10 +9050,10 @@ pre {
     display: block;
     height: 58px; }
     #primary a.logo img {
-      max-width: 32px;
+      width: 36px;
       position: absolute;
-      top: 12px;
-      left: 11px; }
+      top: 11px;
+      left: 10px; }
     #primary a.logo:hover {
       background-color: #3555d5; }
   #primary .icon {
@@ -9107,49 +9107,14 @@ pre {
         display: block;
         content: " ";
         border-bottom: 2px solid #eef0f3; }
-      #sidebar .menu-group #organization a,
-      #sidebar .menu-bar #organization a {
+      #sidebar .menu-group #organization h2,
+      #sidebar .menu-bar #organization h2 {
+        margin: 0;
+        color: #2D3047;
         display: block;
-        padding: 1.125rem 10% 0 1rem;
-        transition: all 0.3s ease-in-out; }
-        #sidebar .menu-group #organization a .icon,
-        #sidebar .menu-bar #organization a .icon {
-          position: absolute;
-          width: 1.2rem;
-          height: 1.2rem;
-          line-height: 1.5;
-          top: 1.12rem;
-          left: auto;
-          right: 0.5rem;
-          font-size: 0.825rem;
-          color: #c7d0df;
-          text-align: center;
-          background: rgba(255, 255, 255, 0.825);
-          border-radius: 50%;
-          border: 1px solid #d9dfe9;
-          transition: all 0.3s ease-in-out; }
-        #sidebar .menu-group #organization a h2,
-        #sidebar .menu-bar #organization a h2 {
-          margin: 0;
-          color: #2D3047;
-          display: block;
-          text-align: left;
-          font-size: 1rem; }
-        #sidebar .menu-group #organization a h3,
-        #sidebar .menu-bar #organization a h3 {
-          margin: 0;
-          color: #93B7BE;
-          display: block;
-          font-size: 0.575rem;
-          text-transform: uppercase;
-          letter-spacing: 0.125em; }
-        #sidebar .menu-group #organization a:hover,
-        #sidebar .menu-bar #organization a:hover {
-          background: #edeef2; }
-          #sidebar .menu-group #organization a:hover .icon,
-          #sidebar .menu-bar #organization a:hover .icon {
-            color: #3d4160;
-            background: white; }
+        text-align: left;
+        font-size: 1rem;
+        padding: 1.125rem 10% 0 1rem; }
   #sidebar .grid-content {
     padding: 0; }
   #sidebar nav ul {
@@ -9418,7 +9383,7 @@ footer {
       font-size: 0.667rem;
       letter-spacing: 0.15em;
       color: #b0bdd2;
-      margin: 0.825rem 0 1rem 4rem; }
+      margin: 0.5rem 0 1rem 4rem; }
     .template-home .project:hover {
       background: white;
       border-color: rgba(55, 176, 231, 0.25);
@@ -9474,8 +9439,8 @@ footer {
       .template-home .project .activity ul li {
         font-family: Menlo, "DejaVu Sans Mono", "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", "Lucida Console", monospace;
         color: #93B7BE;
-        line-height: 1.9;
-        font-size: 0.75rem;
+        line-height: 1.6;
+        font-size: 0.667rem;
         position: relative; }
         .template-home .project .activity ul li:before {
           display: block;
@@ -9505,10 +9470,10 @@ footer {
           .template-home .project .activity ul li.active:before {
             background-color: #37B0E7;
             animation: pulse 2s infinite; }
-    .template-home .project.project-success .icon.status-success {
+    .template-home .project.project-success .icon {
       display: block;
       color: #70AE29; }
-    .template-home .project.project-fail .icon.status-fail {
+    .template-home .project.project-failed .icon {
       display: block;
       color: #D10015; }
 

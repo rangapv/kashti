@@ -35,6 +35,15 @@
       }
   });
 
+  app.filter('trim', function () {
+    return function(value) {
+      if(!angular.isString(value)) {
+          return value;
+      };
+      return value.replace(/^\s+|\s+$/g, '');
+    };
+  });
+
   function config($urlProvider, $locationProvider) {
     $urlProvider.otherwise('/');
 
@@ -49,15 +58,6 @@
   function run() {
     FastClick.attach(document.body);
   }
-
-  app.filter('trim', function () {
-    return function(value) {
-      if(!angular.isString(value)) {
-          return value;
-      };
-      return value.replace(/^\s+|\s+$/g, '');
-    };
-  });
 
   // use service to share IDs between controllers
   // app.factory('jobService', function() {
@@ -86,6 +86,23 @@
       }
     }).then(function successCallback(response) {
         $scope.projects = response.data;
+    },
+      function errorCallback(response) {}
+    );
+  }]);
+
+  app.controller("projectsbuildsController", ['$scope', '$stateParams', '$http',
+       function ($scope, $stateParams, $http) {
+    $http({
+      method: 'GET',
+      url: baseURL + '/v1/projects-build',
+      isArray: true,
+      headers: {
+        'Accept': 'application/json, text/javascript',
+        'Content-Type': 'application/json; charset=utf-8'
+      }
+    }).then(function successCallback(response) {
+        $scope.projectsbuilds = response.data;
     },
       function errorCallback(response) {}
     );
