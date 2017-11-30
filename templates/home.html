@@ -10,12 +10,12 @@
             <li 
               ng-controller="projectController" 
               ng-hide="$state.current.name === 'home'">
-              <a href="../brigade-ui/#!/project/{{project.id}}">{{project.name}}</a></li>
+              <a href="../kashti/#!/project/{{project.id}}">{{project.name}}</a></li>
             <li 
               ng-controller="buildController" 
               ng-class="{ 'active': $state.current.name === 'project'}" 
               ng-hide="$state.current.name === 'home'">
-              <a href="../brigade-ui/#!/project">Master</a></li>
+              <a href="../kashti/#!/project">Master</a></li>
             <li ng-show="$state.current.name === 'build'"><a href="/#!/build/{{build.id}}">Build {{ $stateParams.build.id}}</a></li>
           </ul>
         </div>
@@ -63,7 +63,7 @@
                     project-fail
                     project-active
                   -->
-                    <a href="../brigade-ui/#!/project/{{project.id}}" class="">
+                    <a href="../kashti/#!/project/{{project.id}}" class="">
                       <div class="status">
                         <i class="icon ion-checkmark-circled status-success"></i>
                         <i class="icon ion-close-circled status-fail"></i>
