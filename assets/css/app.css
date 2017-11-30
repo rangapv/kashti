@@ -9687,10 +9687,6 @@ footer {
     overflow: hidden; }
     .build-list .build-item:first-child {
       border: none; }
-    .build-list .build-item a.visible {
-      display: block !important; }
-    .build-list .build-item a.hidden {
-      display: none !important; }
     .build-list .build-item a {
       text-align: left;
       padding: 0.25rem 1.25rem;
@@ -9758,7 +9754,7 @@ footer {
           z-index: 500;
           opacity: 0.5; }
       .build-list .build-item a .act-author {
-        min-width: 15%;
+        min-width: 16%;
         position: relative;
         padding-left: 20px; }
         .build-list .build-item a .act-author .act-avatar {
@@ -9778,13 +9774,13 @@ footer {
             margin-top: -4px;
             position: relative; }
       .build-list .build-item a .act-message {
-        min-width: 26%; }
+        min-width: 28%; }
       .build-list .build-item a .act-hash {
-        min-width: 9%; }
+        min-width: 11%; }
       .build-list .build-item a .act-time-ago {
-        min-width: 22%; }
+        min-width: 18%; }
       .build-list .build-item a .act-time-duration {
-        min-width: 16%; }
+        min-width: 10%; }
       .build-list .build-item a:after {
         content: "Details >";
         color: #37B0E7;
