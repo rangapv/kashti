@@ -79,9 +79,13 @@ function routingConfig($urlRouterProvider, $locationProvider) {
 
 /* @ngInject */
 function httpConfig($httpProvider) {
-  $httpProvider.defaults.useXDomain = true;
   // Needed for CORS support with the default brigade API configured for kashti
+  $httpProvider.defaults.useXDomain = true;
   delete $httpProvider.defaults.headers.common['X-Requested-With'];
+  $httpProvider.defaults.headers.common = {
+    Accept: 'application/json, text/javascript',
+    'Content-Type': 'application/json; charset=utf-8'
+  };
 }
 
 /* @ngInject */
@@ -110,11 +114,7 @@ function ProjectController($scope, $stateParams, $http, config) {
   $http({
     method: 'GET',
     url: config.apiUrl + '/v1/project/' + currentProject.id,
-    isArray: true,
-    headers: {
-      Accept: 'application/json, text/javascript',
-      'Content-Type': 'application/json; charset=utf-8'
-    }
+    isArray: true
   }).then(response => {
     $scope.project = response.data;
   },
@@ -126,11 +126,7 @@ function ProjectBuildsController($scope, $stateParams, $http, config) {
   $http({
     method: 'GET',
     url: config.apiUrl + '/v1/projects-build',
-    isArray: true,
-    headers: {
-      Accept: 'application/json, text/javascript',
-      'Content-Type': 'application/json; charset=utf-8'
-    }
+    isArray: true
   }).then(response => {
     $scope.projectsbuilds = response.data;
   },
@@ -145,10 +141,6 @@ function BuildController($scope, $stateParams, $http, config) {
   $http({
     method: 'GET',
     url: config.apiUrl + '/v1/build/' + currentBuild.id,
-    headers: {
-      Accept: 'application/json, text/javascript',
-      'Content-Type': 'application/json; charset=utf-8'
-    },
     isArray: true
   }).then(response => {
     $scope.build = response.data;
@@ -164,10 +156,6 @@ function BuildsController($scope, $stateParams, $http, config) {
   $http({
     method: 'GET',
     url: config.apiUrl + '/v1/project/' + currentProject.id + '/builds',
-    headers: {
-      Accept: 'application/json, text/javascript',
-      'Content-Type': 'application/json; charset=utf-8'
-    },
     isArray: true
   }).then(response => {
     $scope.builds = response.data;
@@ -183,10 +171,6 @@ function JobsController($scope, $stateParams, $http, config) {
   $http({
     method: 'GET',
     url: config.apiUrl + '/v1/build/' + currentBuild.id + '/jobs',
-    headers: {
-      Accept: 'application/json, text/javascript',
-      'Content-Type': 'application/json; charset=utf-8'
-    },
     isArray: true
   }).then(response => {
     $scope.jobs = response.data;
@@ -202,11 +186,7 @@ function LogController($scope, $stateParams, $http, config) {
   $http({
     method: 'GET',
     url: config.apiUrl + '/v1/job/' + currentJobID + '/logs?stream=true',
-    responseType: 'text',
-    headers: {
-      Accept: 'plain/text, text/javascript',
-      'Content-Type': 'plain/text; charset=utf-8'
-    }
+    responseType: 'text'
   }).then(response => {
     $scope.logs = response.data;
   }, response => {
