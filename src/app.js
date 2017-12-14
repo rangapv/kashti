@@ -29,6 +29,25 @@ class ProjectBuildsController {
     );
   }
 }
+class ProjectController {
+  /* @ngInject */
+  constructor($stateParams, $http, config) {
+    this.currentProject = $stateParams;
+    this.$http = $http;
+    this.config = config;
+
+    this.$http({
+      method: 'GET',
+      url: `${config.apiUrl}/v1/project/${this.currentProject.id}`,
+      isArray: true
+    }).then(response => {
+      this.project = response.data;
+      console.log(this.project);
+    },
+    response => { }
+    );
+  }
+}
 
 angular.module('app.modules', [uiRouter])
   .config(routes)
@@ -62,8 +81,7 @@ function routes($stateProvider) {
     .state({
       name: 'project',
       url: '/project/:id',
-      controllerAs: 'ProjectController',
-      controller: 'ProjectController',
+      controller: 'ProjectController as ctrl',
       template: require('./templates/project.html')
     })
   ;
@@ -124,21 +142,6 @@ function fastClick($document) {
 function setupState($rootScope, $state, $stateParams) {
   $rootScope.$state = $state;
   $rootScope.$stateParams = $stateParams;
-}
-
-/* @ngInject */
-function ProjectController($scope, $stateParams, $http, config) {
-  const currentProject = $stateParams;
-
-  $http({
-    method: 'GET',
-    url: config.apiUrl + '/v1/project/' + currentProject.id,
-    isArray: true
-  }).then(response => {
-    $scope.project = response.data;
-  },
-  response => { }
-  );
 }
 
 /* @ngInject */
