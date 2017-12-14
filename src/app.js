@@ -42,7 +42,46 @@ class ProjectController {
       isArray: true
     }).then(response => {
       this.project = response.data;
-      console.log(this.project);
+    },
+    response => { }
+    );
+  }
+}
+
+class BuildsController {
+  /* @ngInject */
+  constructor($stateParams, $http, config) {
+    this.currentProject = $stateParams;
+    this.$http = $http;
+    this.config = config;
+    this.builds = [];
+
+    this.$http({
+      method: 'GET',
+      url: config.apiUrl + '/v1/project/' + this.currentProject.id + '/builds',
+      isArray: true
+    }).then(response => {
+      this.builds = response.data;
+    },
+    response => { }
+    );
+  }
+}
+
+class BuildController {
+  /* @ngInject */
+  constructor($stateParams, $http, config) {
+    this.currentBuild = $stateParams;
+    this.$http = $http;
+    this.config = config;
+    this.build = '';
+
+    this.$http({
+      method: 'GET',
+      url: config.apiUrl + '/v1/build/' + this.currentBuild.id,
+      isArray: true
+    }).then(response => {
+      this.build = response.data;
     },
     response => { }
     );
@@ -74,8 +113,7 @@ function routes($stateProvider) {
     .state({
       name: 'build',
       url: '/build/:id',
-      controllerAs: 'BuildController',
-      controller: 'BuildController',
+      controller: 'BuildController as buildCtrl',
       template: require('./templates/build.html')
     })
     .state({
@@ -142,36 +180,6 @@ function fastClick($document) {
 function setupState($rootScope, $state, $stateParams) {
   $rootScope.$state = $state;
   $rootScope.$stateParams = $stateParams;
-}
-
-/* @ngInject */
-function BuildController($scope, $stateParams, $http, config) {
-  const currentBuild = $stateParams;
-
-  $http({
-    method: 'GET',
-    url: config.apiUrl + '/v1/build/' + currentBuild.id,
-    isArray: true
-  }).then(response => {
-    $scope.build = response.data;
-  },
-  response => { }
-  );
-}
-
-/* @ngInject */
-function BuildsController($scope, $stateParams, $http, config) {
-  const currentProject = $stateParams;
-
-  $http({
-    method: 'GET',
-    url: config.apiUrl + '/v1/project/' + currentProject.id + '/builds',
-    isArray: true
-  }).then(response => {
-    $scope.builds = response.data;
-  },
-  response => { }
-  );
 }
 
 /* @ngInject */
