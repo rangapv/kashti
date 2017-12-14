@@ -11,6 +11,25 @@ import './assets/scss/app.scss';
 
 const conf = require('./settings');
 
+class ProjectBuildsController {
+  /* @ngInject */
+  constructor($http, config) {
+    this.projectsbuilds = [];
+    this.$http = $http;
+    this.config = config;
+
+    this.$http({
+      method: 'GET',
+      url: this.config.apiUrl + '/v1/projects-build',
+      isArray: true
+    }).then(response => {
+      this.projectsbuilds = response.data;
+    },
+    response => { }
+    );
+  }
+}
+
 angular.module('app.modules', [uiRouter])
   .config(routes)
   .controller('ProjectController', ProjectController)
@@ -30,7 +49,7 @@ function routes($stateProvider) {
     .state({
       name: 'home',
       url: '/',
-      controllerAs: 'ProjectBuildsController',
+      controller: 'ProjectBuildsController as ctrl',
       template: require('./templates/home.html')
     })
     .state({
@@ -121,18 +140,6 @@ function ProjectController($scope, $stateParams, $http, config) {
   response => { }
   );
 }
-/* @ngInject */
-function ProjectBuildsController($scope, $stateParams, $http, config) {
-  $http({
-    method: 'GET',
-    url: config.apiUrl + '/v1/projects-build',
-    isArray: true
-  }).then(response => {
-    $scope.projectsbuilds = response.data;
-  },
-  response => { }
-  );
-}
 
 /* @ngInject */
 function BuildController($scope, $stateParams, $http, config) {
@@ -194,4 +201,3 @@ function LogController($scope, $stateParams, $http, config) {
     console.log('Job > Logs endpoint returned ' + response.status + ', citing \'' + response.message + '\'.');
   });
 }
-
